@@ -65,7 +65,7 @@ export default function AuthForm({
       >
         <div className="text-center mb-8 flex flex-col items-center">
           <img src="S.png" alt="" className="w-20 h-20" />
-          <h1 className="text-2xl font-black tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight">
             {authMode === "login"
               ? "ورود به حساب دانش‌آموز"
               : "ثبت‌نام دانش‌آموز جدید"}

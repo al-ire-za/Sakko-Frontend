@@ -9,6 +9,7 @@ interface TopHeaderProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (val: boolean) => void;
   onLogout: () => void;
+  activeTab?: "dashboard" | "planning";
 }
 
 export default function TopHeader({
@@ -17,6 +18,7 @@ export default function TopHeader({
   isSidebarOpen,
   setIsSidebarOpen,
   onLogout,
+  activeTab = "dashboard"
 }: TopHeaderProps) {
   return (
     <header
@@ -28,12 +30,14 @@ export default function TopHeader({
     >
       <div className="max-w-7xl mx-auto px-4 lg:px-8 flex items-center justify-between gap-4" dir="rtl">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="lg:hidden p-2 rounded-xl border dark:border-slate-800"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          {activeTab !== "planning" && (
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-xl border lg:hidden ..." // فقط توی موبایلِ داشبورد نشون داده میشه
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
 
           <img src="S.png" alt="" className="w-12 h-full" />
         </div>

@@ -31,9 +31,9 @@ export default function Sidebar({
       }`}
     >
       <div className="flex lg:hidden justify-between items-center mb-6 p-3">
-        <span className="border border-slate-800 p-2 rounded-bl-lg text-sm">منوی کاربری</span>
+        <span className="border dark:border-slate-800 border-slate-200 p-2 rounded-bl-lg text-sm">منوی کاربری</span>
         <button onClick={() => setIsSidebarOpen(false)}>
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 border dark:border-slate-800 border-slate-200 rounded-bl-lg p-1" />
         </button>
       </div>
 
