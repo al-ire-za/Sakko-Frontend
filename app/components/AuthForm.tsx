@@ -63,10 +63,8 @@ export default function AuthForm({
             : "bg-white/90 border-white/20"
         }`}
       >
-        <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-2xl bg-indigo-600 text-white mb-3 shadow-lg shadow-indigo-500/30">
-            <GraduationCap className="w-8 h-8" />
-          </div>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <img src="S.png" alt="" className="w-20 h-20" />
           <h1 className="text-2xl font-black tracking-tight">
             {authMode === "login"
               ? "ورود به حساب دانش‌آموز"
@@ -89,7 +87,7 @@ export default function AuthForm({
                   value={formData.fullName}
                   onChange={handleInputChange}
                   placeholder="مثال: علی محمدی"
-                  className={`w-full p-3 rounded-xl border text-sm outline-none transition ${
+                  className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right placeholder:text-right${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 focus:border-indigo-400"
                       : "bg-slate-50 border-slate-200 focus:border-indigo-500"
@@ -106,7 +104,7 @@ export default function AuthForm({
                     required
                     value={formData.age}
                     onChange={handleInputChange}
-                    placeholder="۱۷"
+                    placeholder="17"
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition ${
                       isDarkMode
                         ? "bg-slate-700 border-slate-600 focus:border-indigo-400"
@@ -145,7 +143,7 @@ export default function AuthForm({
                   required
                   value={formData.parentPhone}
                   onChange={handleInputChange}
-                  placeholder="۰۹۱۲..."
+                  placeholder="0912..."
                   className={`w-full p-3 rounded-xl border text-sm outline-none transition ${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 focus:border-indigo-400"
@@ -157,7 +155,7 @@ export default function AuthForm({
           )}
 
           <div>
-            <label className="text-xs font-bold block mb-1 text-right">
+            <label className="text-xs font-bold block mb-1 text-right font-bnaz">
               : ایمیل یا شماره همراه
             </label>
             <input
@@ -176,7 +174,7 @@ export default function AuthForm({
           </div>
 
           <div>
-            <label className="text-xs font-bold block mb-1 text-right">: رمز عبور</label>
+            <label className="text-xs font-bold block mb-1 text-right font-bnaz">: رمز عبور</label>
             <input
               type="password"
               name="password"

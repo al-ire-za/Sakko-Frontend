@@ -49,21 +49,21 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
                   : "bg-white border-slate-200/80 hover:border-indigo-300"
               }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                  <Icon className="w-6 h-6" />
+                <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      فعال
+                    </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                  فعال
-                </span>
-              </div>
-              <h3 className="font-bold text-base mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-right">
-                {box.title}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-right">
-                {box.desc}
-              </p>
-            </div>
+                <h3 className="font-bold font-bnaz text-base mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-right">
+                  {box.title}
+                </h3>
+                <p className="text-xs font-bnaz text-slate-500 dark:text-slate-400 leading-relaxed text-right">
+                  {box.desc}
+                </p>
+             </div>
           );
         })}
       </div>

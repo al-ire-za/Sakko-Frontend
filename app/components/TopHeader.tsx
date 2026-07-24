@@ -35,43 +35,32 @@ export default function TopHeader({
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* روزشمار کنکور */}
-          <div className="flex items-center gap-2 bg-slate-100 px-3.5 py-1.5 rounded-2xl border border-emerald-500/20 dark:text-emerald-600 dark:bg-slate-800/90"> 
-            <span className="text-xs font-bold ">
-                <span className="text-blue-500">158 : تا کنکور سراسری</span>
-            </span>
-          </div>
-
-          {/* دانش‌آموزان آنلاین */}
-          <div className="hidden sm:flex items-center gap-2 bg-slate-100 border border-emerald-500/20 px-3 py-1.5 rounded-2xl text-emerald-600 dark:text-emerald-400 dark:bg-slate-800/90 text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" ></span>
-            <span className="text-blue-500">134 : دانش‌آموز آنلاین</span>
-          </div>
+          <img src="S.png" alt="" className="w-12 h-full" />
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`p-2.5 rounded-xl border transition ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700 hover:bg-slate-700"
-                : "bg-slate-100 border-slate-200 hover:bg-slate-200"
-            }`}
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
-            )}
-          </button>
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-2.5 rounded-xl border transition ${
+                isDarkMode
+                  ? "bg-slate-800 border-slate-700 hover:bg-slate-700"
+                  : "bg-slate-100 border-slate-200 hover:bg-slate-200"
+              }`}
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600" />
+              )}
+            </button>
 
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 text-xs font-bold text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 px-3 py-2 rounded-xl transition"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">خروج</span>
-          </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 text-xs font-bold text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 px-3 py-2 rounded-xl transition"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">خروج</span>
+            </button>
         </div>
       </div>
     </header>

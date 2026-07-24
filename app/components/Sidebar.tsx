@@ -30,33 +30,33 @@ export default function Sidebar({
           : "bg-white border-r border-slate-200 lg:border-none lg:bg-transparent"
       }`}
     >
-      <div className="flex lg:hidden justify-between items-center mb-6">
-        <span className="font-bold text-sm">منوی کاربری</span>
+      <div className="flex lg:hidden justify-between items-center mb-6 p-3">
+        <span className="border border-slate-800 p-2 rounded-bl-lg text-sm">منوی کاربری</span>
         <button onClick={() => setIsSidebarOpen(false)}>
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <div className="space-y-6">
-        {/* ۱. کادر جستجو */}
-        <div
-          className={`p-3 rounded-2xl border flex items-center gap-2 ${
-            isDarkMode
-              ? "bg-slate-900 border-slate-800"
-              : "bg-white border-slate-200 shadow-sm"
-          }`}
-        >
-          
-          <input
-            dir="rtl"
-            type="text"
-            placeholder="جستجو در بخش‌ها..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent text-xs outline-none text-black dark:text-white text-right placeholder:text-right"
-          />
-          <Search className="w-4 h-4 text-slate-400" />
-        </div>
+          {/* ۱. کادر جستجو */}
+          <div
+            className={`p-3 rounded-2xl border flex items-center gap-2 ${
+              isDarkMode
+                ? "bg-slate-900 border-slate-800"
+                : "bg-white border-slate-200 shadow-sm"
+            }`}
+          >
+            
+            <input
+              dir="rtl"
+              type="text"
+              placeholder="جستجو در بخش‌ها..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent text-xs outline-none text-black dark:text-white text-right placeholder:text-right"
+            />
+            <Search className="w-4 h-4 text-slate-400" />
+          </div>
 
         {/* ۲. کارت پروفایل */}
         <div
@@ -71,7 +71,7 @@ export default function Sidebar({
               {userData?.fullName ? userData.fullName[0] : "د"}
             </div>
             <div>
-              <h4 className="font-bold text-sm ">
+              <h4 className="font-bold text-sm">
                 {userData?.fullName || "دانش‌آموز کنکوری"}
               </h4>
               <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
