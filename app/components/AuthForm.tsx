@@ -159,6 +159,7 @@ export default function AuthForm({
               : ایمیل یا شماره همراه
             </label>
             <input
+              suppressHydrationWarning
               type="text"
               name="email"
               required

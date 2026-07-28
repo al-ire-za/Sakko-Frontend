@@ -8,12 +8,12 @@ interface ExamCountdownProps {
   currentDate: Date; // تاریخ روزی که دانش‌آموز در دفترچه انتخاب کرده
   examDate?: Date;   // تاریخ کنکور (پیش‌فرض: اردیبهشت/تیر سال آینده)
 }
-
+const DEFAULT_EXAM_DATE = new Date("2027-04-30T08:00:00");
 export default function ExamCountdown({
   isDarkMode,
   currentDate,
   // تاریخ فرضی کنکور سراسری (می‌توانی بعداً از دیتابیس یا تنظیمات بگیری)
-  examDate = new Date("2027-04-30T08:00:00"),
+  examDate = DEFAULT_EXAM_DATE ,
 }: ExamCountdownProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,

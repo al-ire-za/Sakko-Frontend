@@ -9,7 +9,7 @@ interface TopHeaderProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (val: boolean) => void;
   onLogout: () => void;
-  activeTab?: "dashboard" | "planning";
+  activeTab?: "dashboard" | "planning" | "study-log";
 }
 
 export default function TopHeader({

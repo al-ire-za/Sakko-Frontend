@@ -6,6 +6,7 @@ import TopHeader from "./components/TopHeader";
 import Sidebar from "./components/Sidebar";
 import MainGrid from "./components/MainGrid";
 import Planning from "./components/Planning";
+import DailyStudy from "./components/DailyStudy"; 
 import { ArrowRight } from "lucide-react";
 
 export default function Home() {
@@ -15,8 +16,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // استیت مدیریت تب فعال (dashboard یا planning)
-  const [activeTab, setActiveTab] = useState<"dashboard" | "planning">("dashboard");
+  // 👈 ۲. اضافه کردن "study-log" به استیت تب‌ها
+  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log">("dashboard");
 
   const handleLoginSuccess = (data: any) => {
     setUserData(data);
@@ -28,7 +29,6 @@ export default function Home() {
     setActiveTab("dashboard");
   };
 
-  // ۱. اگر لاگین نکرده، فرم ورود
   if (!isLoggedIn) {
     return (
       <AuthForm
@@ -39,11 +39,10 @@ export default function Home() {
     );
   }
 
-  // ۲. اگر لاگین کرده
   return (
     <div
       className={`${
-        isDarkMode ? "dark bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
+        isDarkMode ? "dark bg-slate-950 text-slate-100" : "bg-white/80 text-slate-800"
       } min-h-screen transition-colors duration-300 font-sans`}
     >
       <TopHeader
@@ -56,31 +55,47 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
-        {activeTab === "planning" ? (
-          /* حالت اول: صفحه برنامه‌ریزی (بدون سایدبار و به صورت تمام‌عرض) */
-          <div className="w-full space-y-4">
+        {/* 🌟 حالت اول: صفحه جدید مطالعه روزانه */}
+        {activeTab === "study-log" ? (
+          <div className="w-full space-y-4 max-w-3xl mx-auto">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition mb-2"
+              className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition mb-2 cursor-pointer"
               dir="rtl"
             >
               <ArrowRight className="w-4 h-4" />
               <span>بازگشت به داشبورد</span>
             </button>
 
-            {/* کامپوننت دفترچه برنامه‌ریزی */}
+            <DailyStudy isDarkMode={isDarkMode} />
+          </div>
+        ) : activeTab === "planning" ? (
+          /* حالت دوم: صفحه برنامه‌ریزی */
+          <div className="w-full space-y-4 max-w-3xl mx-auto">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition mb-2 cursor-pointer"
+              dir="rtl"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>بازگشت به داشبورد</span>
+            </button>
             <Planning isDarkMode={isDarkMode} />
           </div>
         ) : (
-          /* حالت دوم: داشبورد اصلی (همراه با سایدبار) */
+          /* حالت سوم: داشبورد اصلی */
           <div className="flex gap-6 items-start">
             <div
               className="flex-1 space-y-4"
               onClick={(e) => {
                 const target = e.target as HTMLElement;
-                const card = target.closest("[data-id='planning']");
-                if (card) {
+                const cardPlanning = target.closest("[data-id='planning']");
+                const cardStudyLog = target.closest("[data-id='study-log']"); // 👈 هندل کلیک رو کارت مطالعه روزانه
+
+                if (cardPlanning) {
                   setActiveTab("planning");
+                } else if (cardStudyLog) {
+                  setActiveTab("study-log");
                 }
               }}
             >
