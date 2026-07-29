@@ -42,7 +42,7 @@ export default function Home() {
   return (
     <div
       className={`${
-        isDarkMode ? "dark bg-slate-950 text-slate-100" : "bg-white/80 text-slate-800"
+        isDarkMode ? "dark bg-gradient-to-b from bg-slate-950 to-slate-700 text-slate-100" : "bg-gradient-to-t from bg-white/60 to-white text-slate-800"
       } min-h-screen transition-colors duration-300 font-sans`}
     >
       <TopHeader
