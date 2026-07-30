@@ -58,30 +58,48 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // دریافت دوره‌ها از بک‌اند Django
-    fetch("http://127.0.0.1:8000/api/courses/")
-      .then((res) => res.json())
-      .then((data) => {
-        // تبدیل دوره‌های بک‌اند به فرمت قابل نمایش در کارت‌ها
-        const courseBoxes: BoxItem[] = data.map((course: any) => ({
-          id: `course-${course.id}`,
-          title: course.title,
-          desc: course.description || `مدرس: ${course.instructor || "نامشخص"}`,
-          icon: iconMap[course.icon_name] || BookOpen,
-          darkColor: course.dark_color || "text-indigo-400",
-          lightColor: course.light_color || "text-indigo-600",
-          isCourse: true,
-        }));
+  // ۱. دریافت توکن لاگین از ذخیره‌ساز مرورگر
+  const token = localStorage.getItem("token");
 
-        // ترکیب باکس‌های ثابت با دوره‌های دریافت شده
-        setAllBoxes([...staticBoxes, ...courseBoxes]);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error("خطا در دریافت دوره‌ها:", err);
-        setIsLoading(false);
-      });
-  }, []);
+  // ۲. ارسال درخواست به همراه توکن در هدر Authorization
+  fetch("http://127.0.0.1:8000/api/courses/", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`, // کلید حل مشکل 403
+    },
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`خطای شبکه: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      const coursesArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.results)
+        ? data.results
+        : [];
+
+      const courseBoxes: BoxItem[] = coursesArray.map((course: any) => ({
+        id: `course-${course.id}`,
+        title: course.title,
+        desc: course.description || `مدرس: ${course.instructor || "نامشخص"}`,
+        icon: iconMap[course.icon_name] || BookOpen,
+        darkColor: course.dark_color || "text-indigo-400",
+        lightColor: course.light_color || "text-indigo-600",
+        isCourse: true,
+      }));
+
+      setAllBoxes([...staticBoxes, ...courseBoxes]);
+      setIsLoading(false);
+    })
+    .catch((err) => {
+      console.error("خطا در دریافت دوره‌ها:", err);
+      setIsLoading(false);
+    });
+}, []);
 
   const filteredBoxes = allBoxes.filter(
     (box) => box.title.includes(searchQuery) || box.desc.includes(searchQuery)
@@ -109,7 +127,7 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                    {box.isCourse ? "دوره" : "فعال"}
+                    فعال
                   </span>
                   <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:text-white transition-colors">
                     <Icon className={`w-6 h-6 ${isDarkMode ? box.darkColor : box.lightColor}`} />

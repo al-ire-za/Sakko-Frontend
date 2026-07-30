@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AuthForm from "./components/AuthForm";
 import TopHeader from "./components/TopHeader";
 import Sidebar from "./components/Sidebar";
@@ -9,12 +9,55 @@ import Planning from "./components/Planning";
 import DailyStudy from "./components/DailyStudy"; 
 import { ArrowRight } from "lucide-react";
 
+
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+
+    if (!token) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    // دریافت پروفایل کاربر
+    fetch("http://127.0.0.1:8000/api/accounts/me/", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("access_token");
+            setIsLoggedIn(false);
+          }
+          throw new Error("توکن معتبر نیست");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setUserData({
+          fullName: `${data.first_name || ""} ${data.last_name || ""}`.trim() || data.username,
+          field: data.field,
+          age: data.age,
+          email: data.username,
+          parentPhone: data.parent_phone,
+        });
+        setIsLoggedIn(true);
+      })
+      .catch((err) => {
+        console.error("خطای پروفایل:", err);
+      });
+  }, []);
 
   // 👈 ۲. اضافه کردن "study-log" به استیت تب‌ها
   const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log">("dashboard");
@@ -24,7 +67,12 @@ export default function Home() {
     setIsLoggedIn(true);
   };
 
+  
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refreshToken");
+    setUserData(null);
     setIsLoggedIn(false);
     setActiveTab("dashboard");
   };
