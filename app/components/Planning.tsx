@@ -249,7 +249,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
         } ${
           isDarkMode
             ? "bg-slate-900 border-slate-800 text-slate-100"
-            : "bg-amber-50/40 border-amber-200/60 text-slate-800 shadow-amber-900/5"
+            : "bg-white border-slate-200 text-slate-800 shadow-amber-900/5"
         }`}
       >
         {/* عنوان و آمار */}

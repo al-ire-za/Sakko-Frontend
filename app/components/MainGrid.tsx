@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Leaderboard from "./Leaderboard";
+import { Trophy, ArrowRight } from "lucide-react";
 import {
   MessageSquare,
   CheckSquare,
@@ -56,6 +58,7 @@ const staticBoxes: BoxItem[] = [
 export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
   const [allBoxes, setAllBoxes] = useState<BoxItem[]>(staticBoxes);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
 
   useEffect(() => {
   // ۱. دریافت توکن لاگین از ذخیره‌ساز مرورگر
@@ -105,6 +108,25 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
     (box) => box.title.includes(searchQuery) || box.desc.includes(searchQuery)
   );
 
+  const handleBoxClick = (boxId: string) => {
+    if (boxId === "leaderboard") {
+      setShowLeaderboard(true);
+    } else {
+      console.log(`باکس ${boxId} انتخاب شد.`);
+      // عملکرد سایر باکس‌ها در اینجا اضافه می‌شود
+    }
+  };
+
+  if (showLeaderboard) {
+    return (
+      <div className="space-y-4">
+        {/* کامپوننت نفرات برتر */}
+        <Leaderboard isDarkMode={isDarkMode} />
+      </div>
+    );
+  }
+  
+
   return (
     <main className="flex-1" dir="rtl">
       {isLoading ? (
@@ -119,6 +141,7 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
               <div
                 key={box.id}
                 data-id={box.id}
+                onClick={() => handleBoxClick(box.id)}
                 className={`group p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-xl cursor-pointer ${
                   isDarkMode
                     ? "bg-slate-900 border-slate-800 hover:border-indigo-500/50 hover:bg-black/10"

@@ -3,7 +3,7 @@
 import React from "react";
 import { Sun, Moon, LogOut, Menu, LayoutDashboard, User } from "lucide-react";
 
-export type TabType = "dashboard" | "planning" | "study-log" | "profile";
+export type TabType = "dashboard" | "planning" | "study-log" | "profile" | "leaderboard";
 
 interface TopHeaderProps {
   isDarkMode: boolean;
