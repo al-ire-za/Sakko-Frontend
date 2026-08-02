@@ -60,7 +60,7 @@ export default function Home() {
   }, []);
 
   // 👈 ۲. اضافه کردن "study-log" به استیت تب‌ها
-  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "profile">("dashboard");
 
   const handleLoginSuccess = (data: any) => {
     setUserData(data);
@@ -100,34 +100,19 @@ export default function Home() {
         setIsSidebarOpen={setIsSidebarOpen}
         onLogout={handleLogout}
         activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
 
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         {/* 🌟 حالت اول: صفحه جدید مطالعه روزانه */}
         {activeTab === "study-log" ? (
           <div className="w-full space-y-4 max-w-3xl mx-auto">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition mb-2 cursor-pointer"
-              dir="rtl"
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span>بازگشت به داشبورد</span>
-            </button>
-
             <DailyStudy isDarkMode={isDarkMode} />
           </div>
         ) : activeTab === "planning" ? (
           /* حالت دوم: صفحه برنامه‌ریزی */
           <div className="w-full space-y-4 max-w-3xl mx-auto">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition mb-2 cursor-pointer"
-              dir="rtl"
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span>بازگشت به داشبورد</span>
-            </button>
+            
             <Planning isDarkMode={isDarkMode} />
           </div>
         ) : (
