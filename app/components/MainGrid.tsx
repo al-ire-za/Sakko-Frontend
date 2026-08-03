@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Leaderboard from "./Leaderboard";
+import PercentageCalculator from "./PercentageCalculator";
 import { Trophy, ArrowRight } from "lucide-react";
 import {
   MessageSquare,
@@ -58,7 +59,7 @@ const staticBoxes: BoxItem[] = [
 export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
   const [allBoxes, setAllBoxes] = useState<BoxItem[]>(staticBoxes);
   const [isLoading, setIsLoading] = useState(true);
-  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+  const [activeComponent, setActiveComponent] = useState<string | null>(null);
 
   useEffect(() => {
   // ۱. دریافت توکن لاگین از ذخیره‌ساز مرورگر
@@ -110,22 +111,29 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
 
   const handleBoxClick = (boxId: string) => {
     if (boxId === "leaderboard") {
-      setShowLeaderboard(true);
+      setActiveComponent("leaderboard");
+    } else if (boxId === "percentage") {
+      setActiveComponent("percentage");
     } else {
       console.log(`باکس ${boxId} انتخاب شد.`);
-      // عملکرد سایر باکس‌ها در اینجا اضافه می‌شود
     }
   };
 
-  if (showLeaderboard) {
+  if (activeComponent === "leaderboard") {
     return (
       <div className="space-y-4">
-        {/* کامپوننت نفرات برتر */}
         <Leaderboard isDarkMode={isDarkMode} />
       </div>
     );
   }
-  
+
+  if (activeComponent === "percentage") {
+    return (
+      <div className="space-y-4">
+        <PercentageCalculator isDarkMode={isDarkMode} />
+      </div>
+    );
+  }  
 
   return (
     <main className="flex-1" dir="rtl">

@@ -8,6 +8,7 @@ import MainGrid from "./components/MainGrid";
 import Planning from "./components/Planning";
 import DailyStudy from "./components/DailyStudy"; 
 import Leaderboard from "./components/Leaderboard";
+import PercentageCalculator from "./components/PercentageCalculator";
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -57,7 +58,7 @@ export default function Home() {
       });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile"| "percent">("dashboard");
 
   const handleLoginSuccess = (data: any) => {
     setUserData(data);
@@ -111,6 +112,7 @@ export default function Home() {
               const cardPlanning = target.closest("[data-id='planning']");
               const cardStudyLog = target.closest("[data-id='study-log']");
               const cardLeaderboard = target.closest("[data-id='leaderboard']");
+              const cardPercentage = target.closest("[data-id='percentage']") 
 
               if (cardPlanning) {
                 setActiveTab("planning");
@@ -118,6 +120,8 @@ export default function Home() {
                 setActiveTab("study-log");
               } else if (cardLeaderboard) {
                 setActiveTab("leaderboard");
+              } else if (cardPercentage) {
+                setActiveTab("percent"); // 👈 تغییر تب به درصدگیری
               }
             }}
           >
@@ -127,6 +131,8 @@ export default function Home() {
               <Planning isDarkMode={isDarkMode} />
             ) : activeTab === "leaderboard" ? (
               <Leaderboard isDarkMode={isDarkMode} />
+            ) : activeTab === "percent" ? (
+              <PercentageCalculator isDarkMode={isDarkMode} /> // 👈 بخش درصدگیری
             ) : (
               <MainGrid isDarkMode={isDarkMode} searchQuery={searchQuery} />
             )}
