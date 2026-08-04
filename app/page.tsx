@@ -37,6 +37,7 @@ export default function Home() {
           if (res.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("access_token");
+            localStorage.removeItem("user");
             setIsLoggedIn(false);
           }
           throw new Error("توکن معتبر نیست");
@@ -44,15 +45,30 @@ export default function Home() {
         return res.json();
       })
       .then((data) => {
-        setUserData({
-          fullName: `${data.first_name || ""} ${data.last_name || ""}`.trim() || data.username,
-          field: data.field,
-          age: data.age,
-          email: data.username,
-          parentPhone: data.parent_phone,
-        });
-        setIsLoggedIn(true);
-      })
+          // ۱. ذخیره اطلاعات کامل کاربر درون localStorage
+          localStorage.setItem("user", JSON.stringify(data));
+
+          // ۲. ساخت اسم کامل
+          const rawName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+          const fullName = rawName !== "" ? rawName : data.username;
+
+          // ۳. ست کردن کامل userData شامل نقش کاربر
+          setUserData({
+            id: data.id,
+            username: data.username,
+            fullName: fullName,
+            role: data.role, // 👈 اضافه شد
+            is_consultant: data.role === "consultant", // 👈 اضافه شد
+            field: data.field,
+            age: data.age,
+            email: data.email || data.username,
+            parentPhone: data.parent_phone,
+            bio: data.bio,
+            phone: data.phone,
+          });
+
+          setIsLoggedIn(true);
+        })
       .catch((err) => {
         console.error("خطای پروفایل:", err);
       });
@@ -61,7 +77,20 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile"| "percent">("dashboard");
 
   const handleLoginSuccess = (data: any) => {
-    setUserData(data);
+    if (data.access) {
+      localStorage.setItem("token", data.access);
+    }
+    
+    if (data.refresh) {
+      localStorage.setItem("refreshToken", data.refresh);
+    }
+
+    // ذخیره اطلاعات کاربر در localStorage
+    if (data.user) {
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUserData(data.user);
+    }
+
     setIsLoggedIn(true);
   };
 
@@ -69,9 +98,12 @@ export default function Home() {
     localStorage.removeItem("token");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user")
+    localStorage.clear();
     setUserData(null);
     setIsLoggedIn(false);
     setActiveTab("dashboard");
+    
   };
 
   if (!isLoggedIn) {

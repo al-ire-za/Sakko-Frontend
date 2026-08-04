@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Leaderboard from "./Leaderboard";
 import PercentageCalculator from "./PercentageCalculator";
-import { Trophy, ArrowRight } from "lucide-react";
 import {
   MessageSquare,
   CheckSquare,
@@ -13,9 +12,12 @@ import {
   HelpCircle,
   Award,
   Users,
-  Video,       
-  FileText,    
+  Video,
+  FileText,
   Zap,
+  ArrowRight,
+  UserCheck,
+  ClipboardList,
   LucideIcon,
 } from "lucide-react";
 
@@ -41,73 +43,107 @@ interface BoxItem {
   icon: LucideIcon;
   darkColor: string;
   lightColor: string;
-  isCourse?: boolean; // برای تشخیص دوره‌های دریافتی از دیتابیس
+  isCourse?: boolean;
+  roleRequired?: "consultant" | "student"; // اگر تعریف نشود، برای هر دو نقش نمایش داده می‌شود
 }
 
-// باکس‌های ثابت سیستم که آیکون و عملکرد خاص دارند
+// باکس‌های ثابت سیستم
 const staticBoxes: BoxItem[] = [
-  { id: "planning", title: "برنامه‌ریزی", icon: CheckSquare, darkColor: "text-white", lightColor: "text-black", desc: "مدیریت کارهای روزانه" },
-  { id: "study-log", title: "مطالعه روزانه", icon: Clock, darkColor: "text-yellow-400", lightColor: "text-yellow-400", desc: "ثبت ساعت خواب، دروس و تست‌ها" },
-  { id: "exams", title: "آزمون آنلاین", icon: HelpCircle, darkColor: "text-green-300", lightColor: "text-green-300", desc: "شرکت در آزمون‌های آزمایشی" },
+  // --- باکس‌های مخصوص دانش‌آموز ---
+  { id: "planning", title: "برنامه‌ریزی", icon: CheckSquare, darkColor: "text-white", lightColor: "text-black", desc: "مدیریت کارهای روزانه", roleRequired: "student" },
+  { id: "study-log", title: "مطالعه روزانه", icon: Clock, darkColor: "text-yellow-400", lightColor: "text-yellow-400", desc: "ثبت ساعت خواب، دروس و تست‌ها", roleRequired: "student" },
+  { id: "exams", title: "آزمون آنلاین", icon: HelpCircle, darkColor: "text-green-300", lightColor: "text-green-300", desc: "شرکت در آزمون‌های آزمایشی", roleRequired: "student" },
+  { id: "percentage", title: "درصدگیری", icon: GraduationCap, darkColor: "text-cyan-400", lightColor: "text-cyan-400", desc: "محاسبه درصد آزمون‌ها", roleRequired: "student" },
+  { id: "resources", title: "منابع و کنکورها", icon: BookOpen, darkColor: "text-sky-600", lightColor: "text-sky-600", desc: "کنکورهای اخیر و امتحانات نهایی", roleRequired: "student" },
+  { id: "group-study", title: "مطالعه گروهی", icon: Users, darkColor: "text-violet-600", lightColor: "text-violet-600", desc: "مطالعه هم‌زمان با دوستان", roleRequired: "student" },
+  { id: "consulting", title: "مشاوره آنلاین", icon: MessageSquare, darkColor: "text-fuchsia-500", lightColor: "text-fuchsia-500", desc: "ارتباط با مشاورین تحصیلی", roleRequired: "student" },
+
+  // --- باکس‌های عمومی (نمایش برای هم دانش‌آموز و هم مشاور) ---
   { id: "leaderboard", title: "نفرات برتر", icon: Award, darkColor: "text-teal-500", lightColor: "text-teal-500", desc: "رتبه‌بندی بر اساس ساعت مطالعه" },
-  { id: "percentage", title: "درصدگیری", icon: GraduationCap, darkColor: "text-cyan-400", lightColor: "text-cyan-400", desc: "محاسبه درصد آزمون‌ها" },
-  { id: "resources", title: "منابع و کنکورها", icon: BookOpen, darkColor: "text-sky-600", lightColor: "text-sky-600", desc: "کنکورهای اخیر و امتحانات نهایی" },
-  { id: "group-study", title: "مطالعه گروهی", icon: Users, darkColor: "text-violet-600", lightColor: "text-violet-600", desc: "مطالعه هم‌زمان با دوستان" },
-  { id: "consulting", title: "مشاوره آنلاین", icon: MessageSquare, darkColor: "text-fuchsia-500", lightColor: "text-fuchsia-500", desc: "ارتباط با مشاورین تحصیلی" },
+
+
+  // --- باکس‌های ویژه نقش مشاور ---
+  { id: "students-list", title: "مدیریت دانش‌آموزان", icon: UserCheck, darkColor: "text-emerald-400", lightColor: "text-emerald-600", desc: "مشاهده گزارش و وضعیت شاگردان", roleRequired: "consultant" },
+  { id: "consultant-tasks", title: "ارسال برنامه به شاگردان", icon: ClipboardList, darkColor: "text-purple-400", lightColor: "text-purple-600", desc: "تنظیم و ارسال برنامه‌های هفتگی", roleRequired: "consultant" },
 ];
 
 export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
   const [allBoxes, setAllBoxes] = useState<BoxItem[]>(staticBoxes);
   const [isLoading, setIsLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>("student");
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
-  // ۱. دریافت توکن لاگین از ذخیره‌ساز مرورگر
-  const token = localStorage.getItem("token");
+    // ۱. دریافت توکن و اطلاعات کاربر از localStorage
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
 
-  // ۲. ارسال درخواست به همراه توکن در هدر Authorization
-  fetch("http://127.0.0.1:8000/api/courses/", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`, // کلید حل مشکل 403
-    },
-  })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(`خطای شبکه: ${res.status}`);
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.is_consultant || parsedUser.role === "consultant") {
+          setUserRole("consultant");
+        } else {
+          setUserRole("student");
+        }
+      } catch (e) {
+        console.error("خطا در بازخوانی اطلاعات کاربر:", e);
       }
-      return res.json();
+    }
+
+    // ۲. دریافت دوره‌ها از API
+    fetch(`${API_BASE_URL}/api/courses/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     })
-    .then((data) => {
-      const coursesArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.results)
-        ? data.results
-        : [];
+      .then((res) => {
+        if (!res.ok) throw new Error(`خطای شبکه: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        const coursesArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data.results)
+          ? data.results
+          : [];
 
-      const courseBoxes: BoxItem[] = coursesArray.map((course: any) => ({
-        id: `course-${course.id}`,
-        title: course.title,
-        desc: course.description || `مدرس: ${course.instructor || "نامشخص"}`,
-        icon: iconMap[course.icon_name] || BookOpen,
-        darkColor: course.dark_color || "text-indigo-400",
-        lightColor: course.light_color || "text-indigo-600",
-        isCourse: true,
-      }));
+        const courseBoxes: BoxItem[] = coursesArray.map((course: any) => ({
+          id: `course-${course.id}`,
+          title: course.title,
+          desc: course.description || `مدرس: ${course.instructor || "نامشخص"}`,
+          icon: iconMap[course.icon_name] || BookOpen,
+          darkColor: course.dark_color || "text-indigo-400",
+          lightColor: course.light_color || "text-indigo-600",
+          isCourse: true,
+        }));
 
-      setAllBoxes([...staticBoxes, ...courseBoxes]);
-      setIsLoading(false);
-    })
-    .catch((err) => {
-      console.error("خطا در دریافت دوره‌ها:", err);
-      setIsLoading(false);
-    });
-}, []);
+        setAllBoxes([...staticBoxes, ...courseBoxes]);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("خطا در دریافت دوره‌ها:", err);
+        setIsLoading(false);
+      });
+  }, [API_BASE_URL]);
 
-  const filteredBoxes = allBoxes.filter(
-    (box) => box.title.includes(searchQuery) || box.desc.includes(searchQuery)
-  );
+  // ✅ اصلاح شد: فیلتر روی allBoxes (ترکیب باکس‌های ثابت + دوره‌های API)
+  const filteredBoxes = allBoxes.filter((box) => {
+    const matchesSearch =
+      box.title.includes(searchQuery) || box.desc.includes(searchQuery);
+
+    if (!matchesSearch) return false;
+
+    // اگر باکسی نیاز به نقش خاصی ندارد (عمومی است)، برای همه نشان داده شود
+    if (!box.roleRequired) return true;
+
+    // اگر نقش کاربر با نقش required باکس یکی است، نشان داده شود
+    return box.roleRequired === userRole;
+  });
 
   const handleBoxClick = (boxId: string) => {
     if (boxId === "leaderboard") {
@@ -121,7 +157,14 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
 
   if (activeComponent === "leaderboard") {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" dir="rtl">
+        <button
+          onClick={() => setActiveComponent(null)}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition mb-4"
+        >
+          <ArrowRight className="w-4 h-4" />
+          بازگشت به لیست اصلی
+        </button>
         <Leaderboard isDarkMode={isDarkMode} />
       </div>
     );
@@ -129,11 +172,18 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
 
   if (activeComponent === "percentage") {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" dir="rtl">
+        <button
+          onClick={() => setActiveComponent(null)}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition mb-4"
+        >
+          <ArrowRight className="w-4 h-4" />
+          بازگشت به لیست اصلی
+        </button>
         <PercentageCalculator isDarkMode={isDarkMode} />
       </div>
     );
-  }  
+  }
 
   return (
     <main className="flex-1" dir="rtl">
@@ -158,7 +208,7 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                    فعال
+                    {box.roleRequired === "consultant" ? "پنل مشاور" : "فعال"}
                   </span>
                   <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:text-white transition-colors">
                     <Icon className={`w-6 h-6 ${isDarkMode ? box.darkColor : box.lightColor}`} />

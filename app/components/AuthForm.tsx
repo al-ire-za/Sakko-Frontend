@@ -14,8 +14,10 @@ export default function AuthForm({
   setIsDarkMode,
   onLoginSuccess,
 }: AuthFormProps) {
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [role, setRole] = useState<"student" | "consultant">("student");
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -26,7 +28,6 @@ export default function AuthForm({
     parentPhone: "",
   });
 
-  // ذخیره خطاهای کلی و خطاهای تفکیک شده هر فیلد
   const [generalError, setGeneralError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,6 @@ export default function AuthForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // با تایپ کاربر، خطای آن فیلد پاک می‌شود
     if (fieldErrors[e.target.name]) {
       setFieldErrors((prev) => ({ ...prev, [e.target.name]: [] }));
     }
@@ -48,19 +48,16 @@ export default function AuthForm({
 
     const localErrors: Record<string, string[]> = {};
 
-    // 1. اعتبارسنجی نام کاربری (می‌تواند نام کاربری متنی یا شماره موبایل باشد)
     if (!formData.username || formData.username.trim().length < 3) {
       localErrors.username = ["نام کاربری باید حداقل ۳ کاراکتر باشد."];
     }
 
     if (authMode === "register") {
-      // 2. اعتبارسنجی شماره همراه والدین (حتماً باید ۱۱ رقم و با ۰۹ شروع شود)
       const phoneRegex = /^09\d{9}$/;
       if (formData.parentPhone && !phoneRegex.test(formData.parentPhone)) {
         localErrors.parentPhone = ["شماره همراه والدین باید ۱۱ رقم بوده و با ۰۹ شروع شود."];
       }
 
-      // 3. اعتبارسنجی رمز عبور
       const pwd = formData.password;
       const pwdErrors: string[] = [];
       if (pwd.length < 8) pwdErrors.push("رمز عبور باید حداقل ۸ کاراکتر باشد.");
@@ -70,7 +67,6 @@ export default function AuthForm({
       if (pwdErrors.length > 0) localErrors.password = pwdErrors;
     }
 
-    // اگر خطای فرانت‌انداز وجود داشت، درخواست به سرور فرستاده نمی‌شود
     if (Object.keys(localErrors).length > 0) {
       setFieldErrors(localErrors);
       return;
@@ -80,7 +76,7 @@ export default function AuthForm({
 
     try {
       if (authMode === "login") {
-        const res = await fetch("http://127.0.0.1:8000/api/accounts/login/", {
+        const res = await fetch(`${API_BASE_URL}/api/accounts/login/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -102,9 +98,9 @@ export default function AuthForm({
 
         localStorage.setItem("token", data.access);
         localStorage.setItem("refreshToken", data.refresh);
-        onLoginSuccess(data.access);
+        onLoginSuccess(data);
       } else {
-        const res = await fetch("http://127.0.0.1:8000/api/accounts/register/", {
+        const res = await fetch(`${API_BASE_URL}/api/accounts/register/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -112,9 +108,10 @@ export default function AuthForm({
             password: formData.password,
             first_name: formData.firstName,
             last_name: formData.lastName,
-            age: formData.age ? parseInt(formData.age) : null,
+            age: formData.age ? parseInt(formData.age, 10) : null,
             field: formData.field,
             parent_phone: formData.parentPhone,
+            role: role,
           }),
         });
 
@@ -123,20 +120,19 @@ export default function AuthForm({
         if (!res.ok) {
           const mappedErrors: Record<string, string[]> = {};
 
-          // نگاشت و فارسی‌سازی خطاهای پیش‌فرض جنگو
           if (data.username) {
             mappedErrors.username = data.username.map((msg: string) =>
               msg.includes("already exists") || msg.includes("وجود دارد")
-                ? "کاربری با این شماره همراه قبلاً ثبت‌نام کرده است."
+                ? "کاربری با این شماره همراه یا نام کاربری قبلاً ثبت‌نام کرده است."
                 : msg
             );
           }
-          if (data.first_name) mappedErrors.firstName = data.first_name;
-          if (data.last_name) mappedErrors.lastName = data.last_name;
-          if (data.parent_phone) mappedErrors.parentPhone = data.parent_phone;
-          if (data.password) mappedErrors.password = data.password;
+          if (data.first_name) mappedErrors.firstName = Array.isArray(data.first_name) ? data.first_name : [data.first_name];
+          if (data.last_name) mappedErrors.lastName = Array.isArray(data.last_name) ? data.last_name : [data.last_name];
+          if (data.parent_phone) mappedErrors.parentPhone = Array.isArray(data.parent_phone) ? data.parent_phone : [data.parent_phone];
+          if (data.password) mappedErrors.password = Array.isArray(data.password) ? data.password : [data.password];
 
-          setFieldErrors({ ...data, ...mappedErrors });
+          setFieldErrors(mappedErrors);
           return;
         }
 
@@ -150,12 +146,12 @@ export default function AuthForm({
     }
   };
 
-  // تابع کمکی برای نمایش خطا زیر هر فیلد
   const renderFieldError = (fieldName: string) => {
-    if (!fieldErrors[fieldName] || fieldErrors[fieldName].length === 0) return null;
+    const err = fieldErrors[fieldName];
+    if (!err || !Array.isArray(err) || err.length === 0) return null;
     return (
       <p className="text-[11px] text-red-400 mt-1 text-right">
-        {fieldErrors[fieldName][0]}
+        {err[0]}
       </p>
     );
   };
@@ -164,12 +160,11 @@ export default function AuthForm({
     <div
       className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
         isDarkMode
-          ? "dark bg-gradient-to-b from bg-slate-950 to-slate-700 text-white"
-          : "bg-gradient-to-t from bg-white/60 to-white text-slate-800"
+          ? "dark bg-gradient-to-b from-slate-950 to-slate-700 text-white"
+          : "bg-gradient-to-t from-white/60 to-white text-slate-800"
       }`}
       dir="rtl"
     >
-      {/* دکمه سوئیچ تم */}
       <button
         type="button"
         onClick={() => setIsDarkMode(!isDarkMode)}
@@ -190,7 +185,7 @@ export default function AuthForm({
         }`}
       >
         <div className="text-center mb-6 flex flex-col items-center">
-          <img src="S.png" alt="Logo" className="w-20 h-20 mb-2" />
+          <img src="S.png" alt="Logo" className="w-20 h-20 mb-2 object-contain" />
           <h1 className="text-xl font-bold tracking-tight">
             {authMode === "login"
               ? "ورود به حساب دانش‌آموز"
@@ -198,7 +193,6 @@ export default function AuthForm({
           </h1>
         </div>
 
-        {/* پیام عمومی (ارور شبکه یا پیام موفقیت) */}
         {generalError && (
           <div className="mb-4 p-3 rounded-xl text-xs text-center border bg-indigo-500/10 border-indigo-500/20 text-indigo-300">
             {generalError}
@@ -206,7 +200,6 @@ export default function AuthForm({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* نام کاربری */}
           <div>
             <label className="text-xs font-bold block mb-1 text-right">
               نام کاربری / شماره همراه:
@@ -217,7 +210,6 @@ export default function AuthForm({
               required
               value={formData.username}
               onChange={handleInputChange}
-              
               className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                 fieldErrors.username ? "border-red-500 focus:border-red-500" : ""
               } ${
@@ -229,7 +221,6 @@ export default function AuthForm({
             {renderFieldError("username")}
           </div>
 
-          {/* فیلدهای اختصاصی ثبت‌نام */}
           {authMode === "register" && (
             <>
               <div className="grid grid-cols-2 gap-2">
@@ -243,7 +234,6 @@ export default function AuthForm({
                     required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                       fieldErrors.firstName ? "border-red-500" : ""
                     } ${
@@ -264,7 +254,6 @@ export default function AuthForm({
                     required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                   
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                       fieldErrors.lastName ? "border-red-500" : ""
                     } ${
@@ -287,7 +276,6 @@ export default function AuthForm({
                     name="age"
                     value={formData.age}
                     onChange={handleInputChange}
-                    
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                       fieldErrors.age ? "border-red-500" : ""
                     } ${
@@ -329,7 +317,6 @@ export default function AuthForm({
                   name="parentPhone"
                   value={formData.parentPhone}
                   onChange={handleInputChange}
-                  
                   className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                     fieldErrors.parentPhone ? "border-red-500" : ""
                   } ${
@@ -343,7 +330,6 @@ export default function AuthForm({
             </>
           )}
 
-          {/* رمز عبور */}
           <div>
             <label className="text-xs font-bold block mb-1 text-right">
               رمز عبور:
@@ -354,7 +340,6 @@ export default function AuthForm({
               required
               value={formData.password}
               onChange={handleInputChange}
-             
               className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
                 fieldErrors.password ? "border-red-500 focus:border-red-500" : ""
               } ${
