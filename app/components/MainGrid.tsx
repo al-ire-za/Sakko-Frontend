@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Leaderboard from "./Leaderboard";
 import PercentageCalculator from "./PercentageCalculator";
+import OnlineConsultation from "./OnlineConsultation";
 import {
   MessageSquare,
   CheckSquare,
@@ -150,6 +151,8 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
       setActiveComponent("leaderboard");
     } else if (boxId === "percentage") {
       setActiveComponent("percentage");
+    } else if (boxId === "consulting") {
+      setActiveComponent("consulting");
     } else {
       console.log(`باکس ${boxId} انتخاب شد.`);
     }
@@ -181,6 +184,14 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
           بازگشت به لیست اصلی
         </button>
         <PercentageCalculator isDarkMode={isDarkMode} />
+      </div>
+    );
+  }
+
+  if (activeComponent === "consulting") {
+    return (
+      <div className="space-y-4" dir="rtl">
+        <OnlineConsultation isDarkMode={isDarkMode} />
       </div>
     );
   }
