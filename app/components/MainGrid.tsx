@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import Leaderboard from "./Leaderboard";
 import PercentageCalculator from "./PercentageCalculator";
 import OnlineConsultation from "./OnlineConsultation";
+import ConsultantStudentsManager from "./ConsultantStudentsManager"
+
 import {
   MessageSquare,
   CheckSquare,
@@ -55,9 +57,9 @@ const staticBoxes: BoxItem[] = [
   { id: "study-log", title: "مطالعه روزانه", icon: Clock, darkColor: "text-yellow-400", lightColor: "text-yellow-400", desc: "ثبت ساعت خواب، دروس و تست‌ها", roleRequired: "student" },
   { id: "exams", title: "آزمون آنلاین", icon: HelpCircle, darkColor: "text-green-300", lightColor: "text-green-300", desc: "شرکت در آزمون‌های آزمایشی", roleRequired: "student" },
   { id: "percentage", title: "درصدگیری", icon: GraduationCap, darkColor: "text-cyan-400", lightColor: "text-cyan-400", desc: "محاسبه درصد آزمون‌ها", roleRequired: "student" },
-  { id: "resources", title: "منابع و کنکورها", icon: BookOpen, darkColor: "text-sky-600", lightColor: "text-sky-600", desc: "کنکورهای اخیر و امتحانات نهایی", roleRequired: "student" },
+  //{ id: "resources", title: "منابع و کنکورها", icon: BookOpen, darkColor: "text-sky-600", lightColor: "text-sky-600", desc: "کنکورهای اخیر و امتحانات نهایی", roleRequired: "student" },
   { id: "group-study", title: "مطالعه گروهی", icon: Users, darkColor: "text-violet-600", lightColor: "text-violet-600", desc: "مطالعه هم‌زمان با دوستان", roleRequired: "student" },
-  { id: "consulting", title: "مشاوره آنلاین", icon: MessageSquare, darkColor: "text-fuchsia-500", lightColor: "text-fuchsia-500", desc: "ارتباط با مشاورین تحصیلی", roleRequired: "student" },
+  { id: "consulting", title: "ارتباط با مشاور", icon: MessageSquare, darkColor: "text-fuchsia-500", lightColor: "text-fuchsia-500", desc: "ارتباط با مشاورین تحصیلی", roleRequired: "student" },
 
   // --- باکس‌های عمومی (نمایش برای هم دانش‌آموز و هم مشاور) ---
   { id: "leaderboard", title: "نفرات برتر", icon: Award, darkColor: "text-teal-500", lightColor: "text-teal-500", desc: "رتبه‌بندی بر اساس ساعت مطالعه" },
@@ -153,6 +155,8 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
       setActiveComponent("percentage");
     } else if (boxId === "consulting") {
       setActiveComponent("consulting");
+    } else if (boxId === "students-list") { // 👈 اضافه شده
+      setActiveComponent("students-list");
     } else {
       console.log(`باکس ${boxId} انتخاب شد.`);
     }
@@ -192,6 +196,14 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
     return (
       <div className="space-y-4" dir="rtl">
         <OnlineConsultation isDarkMode={isDarkMode} />
+      </div>
+    );
+  }
+
+  if (activeComponent === "students-list") {
+    return (
+      <div className="space-y-4" dir="rtl">
+        <ConsultantStudentsManager isDarkMode={isDarkMode} />
       </div>
     );
   }

@@ -10,6 +10,7 @@ import DailyStudy from "./components/DailyStudy";
 import Leaderboard from "./components/Leaderboard";
 import PercentageCalculator from "./components/PercentageCalculator";
 import OnlineConsultation from "./components/OnlineConsultation";
+import ConsultantStudentsManager from "./components/ConsultantStudentsManager";
 
 
 export default function Home() {
@@ -76,7 +77,7 @@ export default function Home() {
       });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile"| "percent"| "consulting">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile"| "percent"| "consulting"| "students-list">("dashboard");
 
   const handleLoginSuccess = (data: any) => {
     if (data.access) {
@@ -148,6 +149,7 @@ export default function Home() {
               const cardLeaderboard = target.closest("[data-id='leaderboard']");
               const cardPercentage = target.closest("[data-id='percentage']");
               const cardConsulting = target.closest("[data-id='consulting']");
+              const cardStudentsList = target.closest("[data-id='students-list']");
 
               if (cardPlanning) {
                 setActiveTab("planning");
@@ -159,8 +161,10 @@ export default function Home() {
                 setActiveTab("percent"); // 👈 تغییر تب به درصدگیری
               } else if (cardConsulting) { // 👈 اضافه شد
                 setActiveTab("consulting");
+              } else if (cardStudentsList) {
+                setActiveTab("students-list"); // 👈 اضافه شد: مدیریت دانش‌آموزان مشاور
               }
-              }}
+              }}  
           >
             {activeTab === "study-log" ? (
               <DailyStudy isDarkMode={isDarkMode} />
@@ -172,7 +176,9 @@ export default function Home() {
               <PercentageCalculator isDarkMode={isDarkMode} /> // 👈 بخش درصدگیری
             ) : activeTab === "consulting" ? ( // 👈 بخش مشاوره آنلاین
               <OnlineConsultation isDarkMode={isDarkMode} />
-            ): (
+            ): activeTab === "students-list" ? (
+              <ConsultantStudentsManager isDarkMode={isDarkMode} />
+            ) : (
               <MainGrid isDarkMode={isDarkMode} searchQuery={searchQuery} />
             )}
           </div>
