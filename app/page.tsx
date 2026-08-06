@@ -11,7 +11,7 @@ import Leaderboard from "./components/Leaderboard";
 import PercentageCalculator from "./components/PercentageCalculator";
 import OnlineConsultation from "./components/OnlineConsultation";
 import ConsultantStudentsManager from "./components/ConsultantStudentsManager";
-
+import SendProgramToStudent from "./components/SendProgramToStudent"; // 👈 ۱. ایمپورت کامپوننت جدید
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -48,36 +48,36 @@ export default function Home() {
         return res.json();
       })
       .then((data) => {
-          // ۱. ذخیره اطلاعات کامل کاربر درون localStorage
-          localStorage.setItem("user", JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify(data));
 
-          // ۲. ساخت اسم کامل
-          const rawName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
-          const fullName = rawName !== "" ? rawName : data.username;
+        const rawName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+        const fullName = rawName !== "" ? rawName : data.username;
 
-          // ۳. ست کردن کامل userData شامل نقش کاربر
-          setUserData({
-            id: data.id,
-            username: data.username,
-            fullName: fullName,
-            role: data.role, // 👈 اضافه شد
-            is_consultant: data.role === "consultant", // 👈 اضافه شد
-            field: data.field,
-            age: data.age,
-            email: data.email || data.username,
-            parentPhone: data.parent_phone,
-            bio: data.bio,
-            phone: data.phone,
-          });
+        setUserData({
+          id: data.id,
+          username: data.username,
+          fullName: fullName,
+          role: data.role,
+          is_consultant: data.role === "consultant",
+          field: data.field,
+          age: data.age,
+          email: data.email || data.username,
+          parentPhone: data.parent_phone,
+          bio: data.bio,
+          phone: data.phone,
+        });
 
-          setIsLoggedIn(true);
-        })
+        setIsLoggedIn(true);
+      })
       .catch((err) => {
         console.error("خطای پروفایل:", err);
       });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "planning" | "study-log" | "leaderboard" | "profile"| "percent"| "consulting"| "students-list">("dashboard");
+  // 👈 ۲. اضافه کردن "send-program" به تایپ activeTab
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "planning" | "study-log" | "leaderboard" | "profile" | "percent" | "consulting" | "students-list" | "send-program"
+  >("dashboard");
 
   const handleLoginSuccess = (data: any) => {
     if (data.access) {
@@ -88,7 +88,6 @@ export default function Home() {
       localStorage.setItem("refreshToken", data.refresh);
     }
 
-    // ذخیره اطلاعات کاربر در localStorage
     if (data.user) {
       localStorage.setItem("user", JSON.stringify(data.user));
       setUserData(data.user);
@@ -101,12 +100,11 @@ export default function Home() {
     localStorage.removeItem("token");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user")
+    localStorage.removeItem("user");
     localStorage.clear();
     setUserData(null);
     setIsLoggedIn(false);
     setActiveTab("dashboard");
-    
   };
 
   if (!isLoggedIn) {
@@ -136,7 +134,6 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
-        {/* 🌟 لایوت اصلی: ساختار Flex که سایدبار را همیشه در کنار محتوا نگه‌می‌دارد */}
         <div className="flex gap-6 items-start">
           
           {/* بخش محتوای صفحات مختلف */}
@@ -150,6 +147,7 @@ export default function Home() {
               const cardPercentage = target.closest("[data-id='percentage']");
               const cardConsulting = target.closest("[data-id='consulting']");
               const cardStudentsList = target.closest("[data-id='students-list']");
+              const cardSendProgram = target.closest("[data-id='send-program']"); // 👈 ۳. شناسایی کلیک کارت ارسال برنامه
 
               if (cardPlanning) {
                 setActiveTab("planning");
@@ -158,14 +156,17 @@ export default function Home() {
               } else if (cardLeaderboard) {
                 setActiveTab("leaderboard");
               } else if (cardPercentage) {
-                setActiveTab("percent"); // 👈 تغییر تب به درصدگیری
-              } else if (cardConsulting) { // 👈 اضافه شد
+                setActiveTab("percent");
+              } else if (cardConsulting) {
                 setActiveTab("consulting");
               } else if (cardStudentsList) {
-                setActiveTab("students-list"); // 👈 اضافه شد: مدیریت دانش‌آموزان مشاور
+                setActiveTab("students-list");
+              } else if (cardSendProgram) {
+                setActiveTab("send-program"); // 👈 تنظیم تب ارسال برنامه
               }
-              }}  
+            }}  
           >
+            {/* 👈 ۴. رندر شرطی صفحه ارسال برنامه */}
             {activeTab === "study-log" ? (
               <DailyStudy isDarkMode={isDarkMode} />
             ) : activeTab === "planning" ? (
@@ -173,27 +174,29 @@ export default function Home() {
             ) : activeTab === "leaderboard" ? (
               <Leaderboard isDarkMode={isDarkMode} />
             ) : activeTab === "percent" ? (
-              <PercentageCalculator isDarkMode={isDarkMode} /> // 👈 بخش درصدگیری
-            ) : activeTab === "consulting" ? ( // 👈 بخش مشاوره آنلاین
+              <PercentageCalculator isDarkMode={isDarkMode} />
+            ) : activeTab === "consulting" ? (
               <OnlineConsultation isDarkMode={isDarkMode} />
-            ): activeTab === "students-list" ? (
+            ) : activeTab === "students-list" ? (
               <ConsultantStudentsManager isDarkMode={isDarkMode} />
+            ) : activeTab === "send-program" ? (
+              <SendProgramToStudent isDarkMode={isDarkMode} />
             ) : (
               <MainGrid isDarkMode={isDarkMode} searchQuery={searchQuery} />
             )}
           </div>
 
           {/* 🌟 سایدبار: ثابت در تمام تب‌ها */}
-          {activeTab !== "consulting" && (
-          <Sidebar
-            isDarkMode={isDarkMode}
-            isSidebarOpen={isSidebarOpen}
-            setIsSidebarOpen={setIsSidebarOpen}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            userData={userData}
-          />
-        )}
+          {activeTab !== "consulting" && activeTab !== "send-program" && (
+            <Sidebar
+              isDarkMode={isDarkMode}
+              isSidebarOpen={isSidebarOpen}
+              setIsSidebarOpen={setIsSidebarOpen}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              userData={userData}
+            />
+          )}
 
         </div>
       </div>

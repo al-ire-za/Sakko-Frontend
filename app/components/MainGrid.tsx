@@ -23,6 +23,7 @@ import {
   ClipboardList,
   LucideIcon,
 } from "lucide-react";
+import SendProgramToStudent from "./SendProgramToStudent";
 
 interface MainGridProps {
   isDarkMode: boolean;
@@ -67,7 +68,7 @@ const staticBoxes: BoxItem[] = [
 
   // --- باکس‌های ویژه نقش مشاور ---
   { id: "students-list", title: "مدیریت دانش‌آموزان", icon: UserCheck, darkColor: "text-emerald-400", lightColor: "text-emerald-600", desc: "مشاهده گزارش و وضعیت شاگردان", roleRequired: "consultant" },
-  { id: "consultant-tasks", title: "ارسال برنامه به شاگردان", icon: ClipboardList, darkColor: "text-purple-400", lightColor: "text-purple-600", desc: "تنظیم و ارسال برنامه‌های هفتگی", roleRequired: "consultant" },
+  { id: "send-program", title: "ارسال برنامه به شاگردان", icon: ClipboardList, darkColor: "text-purple-400", lightColor: "text-purple-600", desc: "تنظیم و ارسال برنامه‌های هفتگی", roleRequired: "consultant" },
 ];
 
 export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
@@ -157,6 +158,8 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
       setActiveComponent("consulting");
     } else if (boxId === "students-list") { // 👈 اضافه شده
       setActiveComponent("students-list");
+    } else if (boxId === "send-program") { // 👈 اضافه شده
+      setActiveComponent("send-program");
     } else {
       console.log(`باکس ${boxId} انتخاب شد.`);
     }
@@ -169,8 +172,6 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
           onClick={() => setActiveComponent(null)}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition mb-4"
         >
-          <ArrowRight className="w-4 h-4" />
-          بازگشت به لیست اصلی
         </button>
         <Leaderboard isDarkMode={isDarkMode} />
       </div>
@@ -184,8 +185,6 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
           onClick={() => setActiveComponent(null)}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition mb-4"
         >
-          <ArrowRight className="w-4 h-4" />
-          بازگشت به لیست اصلی
         </button>
         <PercentageCalculator isDarkMode={isDarkMode} />
       </div>
@@ -204,6 +203,14 @@ export default function MainGrid({ isDarkMode, searchQuery }: MainGridProps) {
     return (
       <div className="space-y-4" dir="rtl">
         <ConsultantStudentsManager isDarkMode={isDarkMode} />
+      </div>
+    );
+  }
+
+  if (activeComponent === "send-program") {
+    return (
+      <div className="space-y-4" dir="rtl">
+        <SendProgramToStudent isDarkMode={isDarkMode} />
       </div>
     );
   }

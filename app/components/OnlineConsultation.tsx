@@ -12,6 +12,15 @@ interface Consultant {
   img: string | null;
 }
 
+interface ConsultantProgram {
+  id: number;
+  title: string;
+  file: string;
+  file_name?: string;
+  description: string;
+  created_at: string;
+}
+
 interface OnlineConsultationProps {
   isDarkMode: boolean;
 }
@@ -21,15 +30,30 @@ export default function OnlineConsultation({ isDarkMode }: OnlineConsultationPro
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // زیرتب مربوط به دانش‌آموز دارای مشاور ('upload' یا 'programs')
+  const [activeSubTab, setActiveSubTab] = useState<"upload" | "programs">("upload");
+
+  // استیت‌های مربوط به ارسال فایل تمرین
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState<string>("");
   const [uploading, setUploading] = useState<boolean>(false);
+
+  // استیت‌های مربوط به دریافت برنامه از مشاور
+  const [programs, setPrograms] = useState<ConsultantProgram[]>([]);
+  const [loadingPrograms, setLoadingPrograms] = useState<boolean>(false);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
     fetchProfileAndConsultants();
   }, []);
+
+  useEffect(() => {
+    // اگر دانش‌آموز مشاور داشت و تب برنامه‌ها را انتخاب کرد، لیست برنامه‌ها دریافت شود
+    if (hasConsultant && activeSubTab === "programs") {
+      fetchMyPrograms();
+    }
+  }, [activeSubTab, hasConsultant]);
 
   const fetchProfileAndConsultants = async () => {
     try {
@@ -65,6 +89,22 @@ export default function OnlineConsultation({ isDarkMode }: OnlineConsultationPro
       setConsultants([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMyPrograms = async () => {
+    try {
+      setLoadingPrograms(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/accounts/my-programs/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setPrograms(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("خطا در دریافت برنامه‌ها:", err);
+    } finally {
+      setLoadingPrograms(false);
     }
   };
 
@@ -131,7 +171,7 @@ export default function OnlineConsultation({ isDarkMode }: OnlineConsultationPro
     );
   }
 
-  // ۱. اگر دانش‌آموز هنوز مشاور انتخاب نکرده
+  // ۱. اگر دانش‌آموز هنوز مشاور انتخاب نکرده است
   if (!hasConsultant) {
     return (
       <div className="w-full max-w-2xl mx-auto py-6 dir-rtl" dir="rtl">
@@ -223,81 +263,172 @@ export default function OnlineConsultation({ isDarkMode }: OnlineConsultationPro
     );
   }
 
-  // ۲. اگر دانش‌آموز مشاور دارد (باکس ارسال فایل)
+  // ۲. اگر دانش‌آموز مشاور دارد (تب‌های ارسال تمرین / دریافت برنامه)
   return (
     <div className="w-full max-w-3xl mx-auto py-4 dir-rtl" dir="rtl">
+      {/* ---------------- دکمه‌های سوئیچ بین دو بخش ---------------- */}
       <div
-        className={`p-6 md:p-8 rounded-3xl border shadow-xl ${
-          isDarkMode
-            ? "bg-slate-900 border-slate-800 shadow-black/40 text-white"
-            : "bg-white border-slate-200 shadow-slate-200/50 text-slate-900"
+        className={`flex p-1.5 rounded-2xl mb-6 border ${
+          isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-slate-100 border-slate-200"
         }`}
       >
-        <div className="flex items-center justify-between border-b pb-4 mb-6 dark:border-slate-800 border-slate-200">
-          <div>
-            <h2 className="text-lg font-bold">ارسال فایل و تمرینات برای مشاور</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              تمرین‌ها، گزارش کار یا نتایج تست‌های خود را برای بررسی مشاور آپلود کنید.
-            </p>
-          </div>
-          <span className="text-2xl">📤</span>
-        </div>
-
-        <form onSubmit={handleFileUpload} className="space-y-5">
-          <div className="relative">
-            <label
-              htmlFor="file-upload"
-              className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
-                isDarkMode
-                  ? "border-slate-700 bg-slate-950/50 hover:bg-slate-950 hover:border-violet-600"
-                  : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-violet-600"
-              }`}
-            >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                <span className="text-3xl mb-2">📁</span>
-                <p className="mb-1 text-xs font-semibold">
-                  {selectedFile ? selectedFile.name : "برای انتخاب فایل کلیک کنید یا آن را اینجا بکشید"}
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  فرمت‌های مجاز: PDF, PNG, JPG, ZIP (حداکثر ۲۰ مگابایت)
-                </p>
-              </div>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-2 text-slate-400">
-              توضیحات یا یادداشت برای مشاور (اختیاری):
-            </label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="مثلاً: حل تمرین‌های فصل ۲ زیست‌شناسی + تست‌های مبحث تابع..."
-              className={`w-full p-3.5 text-xs rounded-xl border outline-none transition-all ${
-                isDarkMode
-                  ? "bg-slate-950 border-slate-800 focus:border-violet-600 text-white placeholder-slate-600"
-                  : "bg-slate-50 border-slate-200 focus:border-violet-600 text-slate-900 placeholder-slate-400"
-              }`}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={uploading}
-            className="w-full font-medium text-xs py-3.5 rounded-xl bg-violet-600 hover:bg-violet-800 text-white shadow-lg shadow-fuchsia-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <span>{uploading ? "در حال ارسال..." : "تایید و ارسال برای مشاور"}</span>
-            <span>🚀</span>
-          </button>
-        </form>
+        <button
+          onClick={() => setActiveSubTab("upload")}
+          className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${
+            activeSubTab === "upload"
+              ? "bg-violet-600 text-white shadow-lg shadow-violet-900/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          📤 ارسال فایل و تمرینات
+        </button>
+        <button
+          onClick={() => setActiveSubTab("programs")}
+          className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${
+            activeSubTab === "programs"
+              ? "bg-violet-600 text-white shadow-lg shadow-violet-900/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          📋 برنامه‌های دریافتی از مشاور
+        </button>
       </div>
+
+      {/* ---------------- تب ۱: ارسال تمرین ---------------- */}
+      {activeSubTab === "upload" && (
+        <div
+          className={`p-6 md:p-8 rounded-3xl border shadow-xl ${
+            isDarkMode
+              ? "bg-slate-900 border-slate-800 shadow-black/40 text-white"
+              : "bg-white border-slate-200 shadow-slate-200/50 text-slate-900"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b pb-4 mb-6 dark:border-slate-800 border-slate-200">
+            <div>
+              <h2 className="text-lg font-bold">ارسال فایل و تمرینات برای مشاور</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                تمرین‌ها، گزارش کار یا نتایج تست‌های خود را برای بررسی مشاور آپلود کنید.
+              </p>
+            </div>
+            <span className="text-2xl">📤</span>
+          </div>
+
+          <form onSubmit={handleFileUpload} className="space-y-5">
+            <div className="relative">
+              <label
+                htmlFor="file-upload"
+                className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                  isDarkMode
+                    ? "border-slate-700 bg-slate-950/50 hover:bg-slate-950 hover:border-violet-600"
+                    : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-violet-600"
+                }`}
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                  <span className="text-3xl mb-2">📁</span>
+                  <p className="mb-1 text-xs font-semibold">
+                    {selectedFile ? selectedFile.name : "برای انتخاب فایل کلیک کنید یا آن را اینجا بکشید"}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    فرمت‌های مجاز: PDF, PNG, JPG, ZIP (حداکثر ۲۰ مگابایت)
+                  </p>
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-2 text-slate-400">
+                توضیحات یا یادداشت برای مشاور (اختیاری):
+              </label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="مثلاً: حل تمرین‌های فصل ۲ زیست‌شناسی + تست‌های مبحث تابع..."
+                className={`w-full p-3.5 text-xs rounded-xl border outline-none transition-all ${
+                  isDarkMode
+                    ? "bg-slate-950 border-slate-800 focus:border-violet-600 text-white placeholder-slate-600"
+                    : "bg-slate-50 border-slate-200 focus:border-violet-600 text-slate-900 placeholder-slate-400"
+                }`}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={uploading}
+              className="w-full font-medium text-xs py-3.5 rounded-xl bg-violet-600 hover:bg-violet-800 text-white shadow-lg shadow-fuchsia-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span>{uploading ? "در حال ارسال..." : "تایید و ارسال برای مشاور"}</span>
+              <span>🚀</span>
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ---------------- تب ۲: دریافت برنامه از مشاور ---------------- */}
+      {activeSubTab === "programs" && (
+        <div
+          className={`p-6 md:p-8 rounded-3xl border shadow-xl ${
+            isDarkMode
+              ? "bg-slate-900 border-slate-800 shadow-black/40 text-white"
+              : "bg-white border-slate-200 shadow-slate-200/50 text-slate-900"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b pb-4 mb-6 dark:border-slate-800 border-slate-200">
+            <div>
+              <h2 className="text-lg font-bold">برنامه‌های تحصیلی شما</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                برنامه‌های هفتگی و فایل‌های راهنمای ارسال شده توسط مشاور را دانلود کنید.
+              </p>
+            </div>
+            <span className="text-2xl">📋</span>
+          </div>
+
+          {loadingPrograms ? (
+            <div className="text-center py-12 text-xs text-slate-400">
+              در حال دریافت برنامه‌ها...
+            </div>
+          ) : programs.length === 0 ? (
+            <div className="text-center py-12 text-xs text-slate-400 dark:bg-slate-950/30 bg-white/80 rounded-2xl border border-slate-800/60">
+              هنوز برنامه‌ای از طرف مشاور برای شما ارسال نشده است.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {programs.map((prog) => (
+                <div
+                  key={prog.id}
+                  className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    isDarkMode ? "bg-slate-950/60 border-slate-800" : "bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold">{prog.title}</h4>
+                    {prog.description && (
+                      <p className="text-xs text-slate-400 mt-1">{prog.description}</p>
+                    )}
+                    <p className="text-[10px] text-slate-500 mt-1">{prog.created_at}</p>
+                  </div>
+
+                  <a
+                    href={prog.file}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-xl transition-all text-center"
+                  >
+                    دانلود برنامه
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
