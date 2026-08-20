@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, GraduationCap, UserCheck, Loader2 } from "lucide-react";
+import { API_BASE_URL, setAuthTokens, setSavedUser } from "../utils/api";
 
 interface AuthFormProps {
   isDarkMode: boolean;
@@ -14,8 +15,6 @@ export default function AuthForm({
   setIsDarkMode,
   onLoginSuccess,
 }: AuthFormProps) {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [role, setRole] = useState<"student" | "consultant">("student");
   const [formData, setFormData] = useState({
@@ -26,6 +25,8 @@ export default function AuthForm({
     age: "",
     field: "تجربی",
     parentPhone: "",
+    phone: "",
+    bio: "",
   });
 
   const [generalError, setGeneralError] = useState("");
@@ -33,11 +34,12 @@ export default function AuthForm({
   const [loading, setLoading] = useState(false);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (fieldErrors[e.target.name]) {
-      setFieldErrors((prev) => ({ ...prev, [e.target.name]: [] }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: [] }));
     }
   };
 
@@ -54,8 +56,11 @@ export default function AuthForm({
 
     if (authMode === "register") {
       const phoneRegex = /^09\d{9}$/;
-      if (formData.parentPhone && !phoneRegex.test(formData.parentPhone)) {
+      if (role === "student" && formData.parentPhone && !phoneRegex.test(formData.parentPhone)) {
         localErrors.parentPhone = ["شماره همراه والدین باید ۱۱ رقم بوده و با ۰۹ شروع شود."];
+      }
+      if (role === "consultant" && formData.phone && !phoneRegex.test(formData.phone)) {
+        localErrors.phone = ["شماره همراه مشاور باید ۱۱ رقم بوده و با ۰۹ شروع شود."];
       }
 
       const pwd = formData.password;
@@ -80,7 +85,7 @@ export default function AuthForm({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            username: formData.username,
+            username: formData.username.trim(),
             password: formData.password,
           }),
         });
@@ -96,23 +101,33 @@ export default function AuthForm({
           return;
         }
 
-        localStorage.setItem("token", data.access);
-        localStorage.setItem("refreshToken", data.refresh);
+        setAuthTokens(data.access, data.refresh);
+        if (data.user) {
+          setSavedUser(data.user);
+        }
         onLoginSuccess(data);
       } else {
+        const payload: Record<string, any> = {
+          username: formData.username.trim(),
+          password: formData.password,
+          first_name: formData.firstName.trim(),
+          last_name: formData.lastName.trim(),
+          role: role,
+        };
+
+        if (role === "student") {
+          payload.age = formData.age ? parseInt(formData.age, 10) : null;
+          payload.field = formData.field;
+          payload.parent_phone = formData.parentPhone.trim();
+        } else {
+          payload.phone = formData.phone.trim();
+          payload.bio = formData.bio.trim();
+        }
+
         const res = await fetch(`${API_BASE_URL}/api/accounts/register/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: formData.username,
-            password: formData.password,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            age: formData.age ? parseInt(formData.age, 10) : null,
-            field: formData.field,
-            parent_phone: formData.parentPhone,
-            role: role,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
@@ -130,6 +145,7 @@ export default function AuthForm({
           if (data.first_name) mappedErrors.firstName = Array.isArray(data.first_name) ? data.first_name : [data.first_name];
           if (data.last_name) mappedErrors.lastName = Array.isArray(data.last_name) ? data.last_name : [data.last_name];
           if (data.parent_phone) mappedErrors.parentPhone = Array.isArray(data.parent_phone) ? data.parent_phone : [data.parent_phone];
+          if (data.phone) mappedErrors.phone = Array.isArray(data.phone) ? data.phone : [data.phone];
           if (data.password) mappedErrors.password = Array.isArray(data.password) ? data.password : [data.password];
 
           setFieldErrors(mappedErrors);
@@ -137,10 +153,10 @@ export default function AuthForm({
         }
 
         setAuthMode("login");
-        setGeneralError("ثبت‌نام با موفقیت انجام شد! حالا وارد شوید.");
+        setGeneralError("ثبت‌نام با موفقیت انجام شد! اکنون می‌توانید با اطلاعات خود وارد شوید.");
       }
     } catch (err: any) {
-      setGeneralError("خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.");
+      setGeneralError("خطا در ارتباط با سرور. لطفاً از روشن بودن بک‌اند اطمینان حاصل کنید.");
     } finally {
       setLoading(false);
     }
@@ -150,7 +166,7 @@ export default function AuthForm({
     const err = fieldErrors[fieldName];
     if (!err || !Array.isArray(err) || err.length === 0) return null;
     return (
-      <p className="text-[11px] text-red-400 mt-1 text-right">
+      <p className="text-[11px] text-red-400 mt-1 text-right font-medium">
         {err[0]}
       </p>
     );
@@ -158,17 +174,19 @@ export default function AuthForm({
 
   return (
     <div
-      className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
+      className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 font-sans ${
         isDarkMode
-          ? "dark bg-gradient-to-b from-slate-950 to-slate-700 text-white"
-          : "bg-gradient-to-t from-white/60 to-white text-slate-800"
+          ? "dark bg-gradient-to-b from-slate-950 to-slate-800 text-white"
+          : "bg-gradient-to-t from-slate-100 to-white text-slate-800"
       }`}
       dir="rtl"
     >
+
       <button
         type="button"
         onClick={() => setIsDarkMode(!isDarkMode)}
         className="absolute top-5 left-5 p-3 rounded-2xl bg-white/80 dark:bg-slate-800/80 shadow-lg backdrop-blur-md transition-all hover:scale-105"
+        title="تغییر تم"
       >
         {isDarkMode ? (
           <Sun className="w-5 h-5 text-amber-400" />
@@ -180,21 +198,61 @@ export default function AuthForm({
       <div
         className={`w-full max-w-md p-8 rounded-3xl shadow-2xl backdrop-blur-md border transition-all ${
           isDarkMode
-            ? "bg-slate-800/90 border-slate-700"
-            : "bg-white/90 border-white/20"
+            ? "bg-slate-900/90 border-slate-800 shadow-indigo-950/20"
+            : "bg-white/95 border-slate-200 shadow-slate-200/50"
         }`}
       >
         <div className="text-center mb-6 flex flex-col items-center">
-          <img src="S.png" alt="Logo" className="w-20 h-20 mb-2 object-contain" />
+          <img src="/S.png" alt="Logo" className="w-20 h-20 mb-2 object-contain" />
           <h1 className="text-xl font-bold tracking-tight">
             {authMode === "login"
-              ? "ورود به حساب دانش‌آموز"
-              : "ثبت‌نام دانش‌آموز جدید"}
+              ? "ورود به حساب کاربری سکو"
+              : "ثبت‌نام در سامانه سکو"}
           </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            {authMode === "login"
+              ? "برای دسترسی به پنل کاربری اطلاعات خود را وارد کنید"
+              : "نقش خود را انتخاب کرده و فرم را تکمیل نمایید"}
+          </p>
         </div>
 
+        {authMode === "register" && (
+          <div className="flex p-1 rounded-2xl mb-5 bg-slate-100 dark:bg-slate-800/80 border dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setRole("student")}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                role === "student"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-indigo-600"
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>دانش‌آموز</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("consultant")}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                role === "consultant"
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-violet-600"
+              }`}
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>مشاور تحصیلی</span>
+            </button>
+          </div>
+        )}
+
         {generalError && (
-          <div className="mb-4 p-3 rounded-xl text-xs text-center border bg-indigo-500/10 border-indigo-500/20 text-indigo-300">
+          <div
+            className={`mb-4 p-3 rounded-xl text-xs text-center border font-medium ${
+              generalError.includes("موفقیت")
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+            }`}
+          >
             {generalError}
           </div>
         )}
@@ -211,10 +269,10 @@ export default function AuthForm({
               value={formData.username}
               onChange={handleInputChange}
               className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                fieldErrors.username ? "border-red-500 focus:border-red-500" : ""
+                fieldErrors.username ? "border-rose-500 focus:border-rose-500" : ""
               } ${
                 isDarkMode
-                  ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
+                  ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
                   : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
               }`}
             />
@@ -235,10 +293,10 @@ export default function AuthForm({
                     value={formData.firstName}
                     onChange={handleInputChange}
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                      fieldErrors.firstName ? "border-red-500" : ""
+                      fieldErrors.firstName ? "border-rose-500" : ""
                     } ${
                       isDarkMode
-                        ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
+                        ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
                         : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
                     }`}
                   />
@@ -255,10 +313,10 @@ export default function AuthForm({
                     value={formData.lastName}
                     onChange={handleInputChange}
                     className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                      fieldErrors.lastName ? "border-red-500" : ""
+                      fieldErrors.lastName ? "border-rose-500" : ""
                     } ${
                       isDarkMode
-                        ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
+                        ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
                         : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
                     }`}
                   />
@@ -266,67 +324,110 @@ export default function AuthForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-bold block mb-1 text-right">
-                    سن:
-                  </label>
-                  <input
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleInputChange}
-                    className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                      fieldErrors.age ? "border-red-500" : ""
-                    } ${
-                      isDarkMode
-                        ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
-                        : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
-                    }`}
-                  />
-                  {renderFieldError("age")}
-                </div>
-                <div>
-                  <label className="text-xs font-bold block mb-1 text-right">
-                    رشته تحصیلی:
-                  </label>
-                  <select
-                    name="field"
-                    value={formData.field}
-                    onChange={handleInputChange}
-                    className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                      isDarkMode
-                        ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
-                        : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
-                    }`}
-                  >
-                    <option value="تجربی">تجربی</option>
-                    <option value="ریاضی">ریاضی</option>
-                    <option value="انسانی">انسانی</option>
-                  </select>
-                  {renderFieldError("field")}
-                </div>
-              </div>
+              {role === "student" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-bold block mb-1 text-right">
+                        سن:
+                      </label>
+                      <input
+                        type="number"
+                        name="age"
+                        value={formData.age}
+                        onChange={handleInputChange}
+                        className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
+                          fieldErrors.age ? "border-rose-500" : ""
+                        } ${
+                          isDarkMode
+                            ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                            : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
+                        }`}
+                      />
+                      {renderFieldError("age")}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold block mb-1 text-right">
+                        رشته تحصیلی:
+                      </label>
+                      <select
+                        name="field"
+                        value={formData.field}
+                        onChange={handleInputChange}
+                        className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
+                          isDarkMode
+                            ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                            : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
+                        }`}
+                      >
+                        <option value="تجربی">تجربی</option>
+                        <option value="ریاضی">ریاضی</option>
+                        <option value="انسانی">انسانی</option>
+                      </select>
+                      {renderFieldError("field")}
+                    </div>
+                  </div>
 
-              <div>
-                <label className="text-xs font-bold block mb-1 text-right">
-                  شماره همراه والدین:
-                </label>
-                <input
-                  type="tel"
-                  name="parentPhone"
-                  value={formData.parentPhone}
-                  onChange={handleInputChange}
-                  className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                    fieldErrors.parentPhone ? "border-red-500" : ""
-                  } ${
-                    isDarkMode
-                      ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
-                      : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
-                  }`}
-                />
-                {renderFieldError("parentPhone")}
-              </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1 text-right">
+                      شماره همراه والدین:
+                    </label>
+                    <input
+                      type="tel"
+                      name="parentPhone"
+                      value={formData.parentPhone}
+                      onChange={handleInputChange}
+                      className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
+                        fieldErrors.parentPhone ? "border-rose-500" : ""
+                      } ${
+                        isDarkMode
+                          ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                          : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
+                      }`}
+                    />
+                    {renderFieldError("parentPhone")}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs font-bold block mb-1 text-right">
+                      شماره تماس مشاور:
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
+                        fieldErrors.phone ? "border-rose-500" : ""
+                      } ${
+                        isDarkMode
+                          ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                          : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
+                      }`}
+                    />
+                    {renderFieldError("phone")}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold block mb-1 text-right">
+                      رزومه و سوابق مشاوره:
+                    </label>
+                    <textarea
+                      name="bio"
+                      rows={2}
+                      value={formData.bio}
+                      onChange={handleInputChange}
+                      className={`w-full p-3 rounded-xl border text-xs outline-none transition text-right ${
+                        isDarkMode
+                          ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                          : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
+                      }`}
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -341,26 +442,32 @@ export default function AuthForm({
               value={formData.password}
               onChange={handleInputChange}
               className={`w-full p-3 rounded-xl border text-sm outline-none transition text-right ${
-                fieldErrors.password ? "border-red-500 focus:border-red-500" : ""
+                fieldErrors.password ? "border-rose-500 focus:border-rose-500" : ""
               } ${
                 isDarkMode
-                  ? "bg-slate-700 border-slate-600 focus:border-indigo-400 text-white"
+                  ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
                   : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800"
               }`}
             />
             {renderFieldError("password")}
           </div>
 
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-50"
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 active:translate-y-0 mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
-            {loading
-              ? "در حال پردازش..."
-              : authMode === "login"
-              ? "ورود به پنل"
-              : "تکمیل ثبت‌نام"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>در حال پردازش...</span>
+              </>
+            ) : authMode === "login" ? (
+              "ورود به پنل"
+            ) : (
+              "تکمیل ثبت‌نام"
+            )}
           </button>
         </form>
 
@@ -375,7 +482,7 @@ export default function AuthForm({
                   setFieldErrors({});
                   setAuthMode("register");
                 }}
-                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
               >
                 ثبت‌نام کنید
               </button>
@@ -390,7 +497,7 @@ export default function AuthForm({
                   setFieldErrors({});
                   setAuthMode("login");
                 }}
-                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
               >
                 وارد شوید
               </button>

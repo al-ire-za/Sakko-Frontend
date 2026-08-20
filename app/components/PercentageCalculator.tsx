@@ -119,7 +119,6 @@ export default function PercentageCalculator({
             <input
               type="number"
               min="0"
-              placeholder="0"
               value={correct}
               onChange={(e) => setCorrect(e.target.value)}
               className={`w-full px-4 py-3 rounded-xl border text-sm font-bold transition outline-none ${
@@ -139,7 +138,6 @@ export default function PercentageCalculator({
             <input
               type="number"
               min="0"
-              placeholder="0"
               value={wrong}
               onChange={(e) => setWrong(e.target.value)}
               className={`w-full px-4 py-3 rounded-xl border text-sm font-bold transition outline-none ${
@@ -159,7 +157,6 @@ export default function PercentageCalculator({
             <input
               type="number"
               min="0"
-              placeholder="0"
               value={unanswered}
               onChange={(e) => setUnanswered(e.target.value)}
               className={`w-full px-4 py-3 rounded-xl border text-sm font-bold transition outline-none ${
@@ -169,6 +166,7 @@ export default function PercentageCalculator({
               }`}
             />
           </div>
+
 
           {/* خلاصه تعداد کل */}
           <div

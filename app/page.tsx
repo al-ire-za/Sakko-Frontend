@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import AuthForm from "./components/AuthForm";
-import TopHeader from "./components/TopHeader";
+import TopHeader, { TabType } from "./components/TopHeader";
 import Sidebar from "./components/Sidebar";
 import MainGrid from "./components/MainGrid";
 import Planning from "./components/Planning";
@@ -11,101 +11,137 @@ import Leaderboard from "./components/Leaderboard";
 import PercentageCalculator from "./components/PercentageCalculator";
 import OnlineConsultation from "./components/OnlineConsultation";
 import ConsultantStudentsManager from "./components/ConsultantStudentsManager";
-import SendProgramToStudent from "./components/SendProgramToStudent"; // 👈 ۱. ایمپورت کامپوننت جدید
+import SendProgramToStudent from "./components/SendProgramToStudent";
+import Profile from "./components/Profile";
+import { Loader2 } from "lucide-react";
+import {
+  API_BASE_URL,
+  getAuthToken,
+  getAuthHeaders,
+  clearAuthTokens,
+  setSavedUser,
+  getSavedUser,
+} from "./utils/api";
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
 
-  useEffect(() => {
-    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
-
+  const fetchUserProfile = useCallback(async () => {
+    const token = getAuthToken();
     if (!token) {
       setIsLoggedIn(false);
+      setIsInitializing(false);
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/accounts/me/", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          if (res.status === 401) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("user");
-            setIsLoggedIn(false);
-          }
-          throw new Error("توکن معتبر نیست");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        localStorage.setItem("user", JSON.stringify(data));
-
-        const rawName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
-        const fullName = rawName !== "" ? rawName : data.username;
-
-        setUserData({
-          id: data.id,
-          username: data.username,
-          fullName: fullName,
-          role: data.role,
-          is_consultant: data.role === "consultant",
-          field: data.field,
-          age: data.age,
-          email: data.email || data.username,
-          parentPhone: data.parent_phone,
-          bio: data.bio,
-          phone: data.phone,
-        });
-
-        setIsLoggedIn(true);
-      })
-      .catch((err) => {
-        console.error("خطای پروفایل:", err);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/accounts/me/`, {
+        method: "GET",
+        headers: getAuthHeaders(),
       });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuthTokens();
+          setIsLoggedIn(false);
+        }
+        throw new Error("توکن منقضی یا نامعتبر است");
+      }
+
+      const data = await res.json();
+      setSavedUser(data);
+
+      const rawName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+      const fullName = rawName !== "" ? rawName : data.username;
+
+      setUserData({
+        id: data.id,
+        username: data.username,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        fullName: fullName,
+        role: data.role,
+        is_consultant: data.role === "consultant",
+        field: data.field,
+        age: data.age,
+        email: data.email || data.username,
+        parentPhone: data.parent_phone,
+        parent_phone: data.parent_phone,
+        bio: data.bio,
+        phone: data.phone,
+        avatar: data.avatar,
+      });
+
+      setIsLoggedIn(true);
+    } catch (err) {
+      console.error("خطای بارگذاری پروفایل:", err);
+      const cached = getSavedUser();
+      if (cached && token) {
+        setUserData(cached);
+        setIsLoggedIn(true);
+      }
+    } finally {
+      setIsInitializing(false);
+    }
   }, []);
 
-  // 👈 ۲. اضافه کردن "send-program" به تایپ activeTab
-  const [activeTab, setActiveTab] = useState<
-    "dashboard" | "planning" | "study-log" | "leaderboard" | "profile" | "percent" | "consulting" | "students-list" | "send-program"
-  >("dashboard");
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleLoginSuccess = (data: any) => {
-    if (data.access) {
-      localStorage.setItem("token", data.access);
-    }
-    
-    if (data.refresh) {
-      localStorage.setItem("refreshToken", data.refresh);
-    }
-
     if (data.user) {
-      localStorage.setItem("user", JSON.stringify(data.user));
       setUserData(data.user);
+      setSavedUser(data.user);
     }
-
     setIsLoggedIn(true);
+    fetchUserProfile();
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.clear();
+    clearAuthTokens();
     setUserData(null);
     setIsLoggedIn(false);
     setActiveTab("dashboard");
   };
+
+  const handleSelectTab = (tabId: string) => {
+    const validTabs: Record<string, TabType> = {
+      dashboard: "dashboard",
+      profile: "profile",
+      planning: "planning",
+      "study-log": "study-log",
+      leaderboard: "leaderboard",
+      percentage: "percent",
+      percent: "percent",
+      consulting: "consulting",
+      "students-list": "students-list",
+      "send-program": "send-program",
+    };
+
+    if (validTabs[tabId]) {
+      setActiveTab(validTabs[tabId]);
+    } else {
+      console.log(`تب ${tabId} انتخاب شد`);
+    }
+  };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white dir-rtl">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+          <span className="text-xs text-slate-400">در حال بارگذاری سکو...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -120,8 +156,11 @@ export default function Home() {
   return (
     <div
       className={`${
-        isDarkMode ? "dark bg-gradient-to-b from-slate-950 to-slate-700 text-slate-100" : "bg-gradient-to-t from-white/60 to-white text-slate-800"
+        isDarkMode
+          ? "dark bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100"
+          : "bg-slate-50 text-slate-800"
       } min-h-screen transition-colors duration-300 font-sans`}
+      dir="rtl"
     >
       <TopHeader
         isDarkMode={isDarkMode}
@@ -135,39 +174,15 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         <div className="flex gap-6 items-start">
-          
-          {/* بخش محتوای صفحات مختلف */}
-          <div
-            className="flex-1 space-y-4 min-w-0"
-            onClick={(e) => {
-              const target = e.target as HTMLElement;
-              const cardPlanning = target.closest("[data-id='planning']");
-              const cardStudyLog = target.closest("[data-id='study-log']");
-              const cardLeaderboard = target.closest("[data-id='leaderboard']");
-              const cardPercentage = target.closest("[data-id='percentage']");
-              const cardConsulting = target.closest("[data-id='consulting']");
-              const cardStudentsList = target.closest("[data-id='students-list']");
-              const cardSendProgram = target.closest("[data-id='send-program']"); // 👈 ۳. شناسایی کلیک کارت ارسال برنامه
-
-              if (cardPlanning) {
-                setActiveTab("planning");
-              } else if (cardStudyLog) {
-                setActiveTab("study-log");
-              } else if (cardLeaderboard) {
-                setActiveTab("leaderboard");
-              } else if (cardPercentage) {
-                setActiveTab("percent");
-              } else if (cardConsulting) {
-                setActiveTab("consulting");
-              } else if (cardStudentsList) {
-                setActiveTab("students-list");
-              } else if (cardSendProgram) {
-                setActiveTab("send-program"); // 👈 تنظیم تب ارسال برنامه
-              }
-            }}  
-          >
-            {/* 👈 ۴. رندر شرطی صفحه ارسال برنامه */}
-            {activeTab === "study-log" ? (
+          {/* محتوای اصلی تب فعال */}
+          <div className="flex-1 space-y-4 min-w-0">
+            {activeTab === "profile" ? (
+              <Profile
+                isDarkMode={isDarkMode}
+                userData={userData}
+                onUserUpdate={fetchUserProfile}
+              />
+            ) : activeTab === "study-log" ? (
               <DailyStudy isDarkMode={isDarkMode} />
             ) : activeTab === "planning" ? (
               <Planning isDarkMode={isDarkMode} />
@@ -182,11 +197,16 @@ export default function Home() {
             ) : activeTab === "send-program" ? (
               <SendProgramToStudent isDarkMode={isDarkMode} />
             ) : (
-              <MainGrid isDarkMode={isDarkMode} searchQuery={searchQuery} />
+              <MainGrid
+                isDarkMode={isDarkMode}
+                searchQuery={searchQuery}
+                onSelectTab={handleSelectTab}
+              />
             )}
           </div>
 
-          {/* 🌟 سایدبار: ثابت در تمام تب‌ها */}
+
+          {/* سایدبار: در تب‌های تمام صفحه پنهان می‌شود */}
           {activeTab !== "consulting" && activeTab !== "send-program" && (
             <Sidebar
               isDarkMode={isDarkMode}
@@ -195,6 +215,7 @@ export default function Home() {
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               userData={userData}
+              onSelectTab={handleSelectTab}
             />
           )}
 

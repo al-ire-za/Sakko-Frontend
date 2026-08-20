@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Timer, Flame } from "lucide-react";
+import { Flame } from "lucide-react";
 
 interface ExamCountdownProps {
   isDarkMode: boolean;
-  currentDate: Date; // تاریخ روزی که دانش‌آموز در دفترچه انتخاب کرده
-  examDate?: Date;   // تاریخ کنکور (پیش‌فرض: اردیبهشت/تیر سال آینده)
+  currentDate?: Date;
+  examDate?: Date;
 }
+
 const DEFAULT_EXAM_DATE = new Date("2027-04-30T08:00:00");
+
 export default function ExamCountdown({
   isDarkMode,
-  currentDate,
-  // تاریخ فرضی کنکور سراسری (می‌توانی بعداً از دیتابیس یا تنظیمات بگیری)
-  examDate = DEFAULT_EXAM_DATE ,
+  examDate = DEFAULT_EXAM_DATE,
 }: ExamCountdownProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -24,8 +24,7 @@ export default function ExamCountdown({
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      // اختلاف بین تاریخ کنکور و تاریخ فعلی/انتخابی
-      const now = new Date(); // زمان واقعی لحظه‌ای برای ثانیه‌شمار
+      const now = new Date();
       const difference = examDate.getTime() - now.getTime();
 
       if (difference > 0) {
@@ -41,7 +40,7 @@ export default function ExamCountdown({
     };
 
     calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000); // به‌روزرسانی ثانیه‌شمار
+    const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
   }, [examDate]);
@@ -71,53 +70,53 @@ export default function ExamCountdown({
           </div>
         </div>
 
-        {/* بخش تایمر (از چپ به راست: روز -> ساعت -> دقیقه -> ثانیه) */}
+        {/* بخش تایمر (روز -> ساعت -> دقیقه -> ثانیه) */}
         <div className="flex items-center gap-2 sm:gap-3 text-center" dir="ltr">
-        {/* ۱. روز (سمت چپ‌ترین) */}
-        <div className="flex flex-col items-center">
+          {/* ۱. روز */}
+          <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-md flex items-center justify-center font-extrabold text-lg sm:text-xl border border-white/10 text-amber-300">
-            {timeLeft.days}
+              {timeLeft.days}
             </div>
             <span className="text-[10px] text-indigo-100 dark:text-slate-400 mt-1 font-medium">
-            روز
+              روز
             </span>
-        </div>
+          </div>
 
-        <span className="text-lg font-bold opacity-60 mb-4">:</span>
+          <span className="text-lg font-bold opacity-60 mb-4">:</span>
 
-        {/* ۲. ساعت */}
-        <div className="flex flex-col items-center">
+          {/* ۲. ساعت */}
+          <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-md flex items-center justify-center font-extrabold text-lg sm:text-xl border border-white/10">
-            {String(timeLeft.hours).padStart(2, "۰")}
+              {String(timeLeft.hours).padStart(2, "0")}
             </div>
             <span className="text-[10px] text-indigo-100 dark:text-slate-400 mt-1 font-medium">
-            ساعت
+              ساعت
             </span>
-        </div>
+          </div>
 
-        <span className="text-lg font-bold opacity-60 mb-4">:</span>
+          <span className="text-lg font-bold opacity-60 mb-4">:</span>
 
-        {/* ۳. دقیقه */}
-        <div className="flex flex-col items-center">
+          {/* ۳. دقیقه */}
+          <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-md flex items-center justify-center font-extrabold text-lg sm:text-xl border border-white/10">
-            {String(timeLeft.minutes).padStart(2, "۰")}
+              {String(timeLeft.minutes).padStart(2, "0")}
             </div>
             <span className="text-[10px] text-indigo-100 dark:text-slate-400 mt-1 font-medium">
-            دقیقه
+              دقیقه
             </span>
-        </div>
+          </div>
 
-        <span className="text-lg font-bold opacity-60 mb-4">:</span>
+          <span className="text-lg font-bold opacity-60 mb-4">:</span>
 
-        {/* ۴. ثانیه (سمت راست‌ترین) */}
-        <div className="flex flex-col items-center">
+          {/* ۴. ثانیه */}
+          <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-md flex items-center justify-center font-extrabold text-lg sm:text-xl border border-white/10">
-            {String(timeLeft.seconds).padStart(2, "۰")}
+              {String(timeLeft.seconds).padStart(2, "0")}
             </div>
             <span className="text-[10px] text-indigo-100 dark:text-slate-400 mt-1 font-medium">
-            ثانیه
+              ثانیه
             </span>
-        </div>
+          </div>
         </div>
       </div>
     </div>

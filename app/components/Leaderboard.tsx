@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Trophy, Medal, Flame, BookOpen, Clock, Award, Loader2 } from "lucide-react";
+import { API_BASE_URL, getAuthHeaders } from "../utils/api";
 
 interface TopStudent {
   id: number;
@@ -15,7 +16,6 @@ interface TopStudent {
 
 type PeriodType = "day" | "week" | "month";
 
-// 🌟 اضافه کردن isDarkMode به پراپ‌های کامپوننت
 interface LeaderboardProps {
   isDarkMode?: boolean;
 }
@@ -25,31 +25,30 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
   const [students, setStudents] = useState<TopStudent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [period]);
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://127.0.0.1:8000/api/leaderboard/?period=${period}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`, // 👈 ارسال توکن با استاندارد Bearer
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/leaderboard/?period=${period}`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+        }
+      );
       if (response.ok) {
         const data = await response.json();
-        setStudents(data);
+        setStudents(Array.isArray(data) ? data : data.results || []);
       }
     } catch (error) {
-      console.error("خطا در ارتباط با سرور:", error);
+      console.error("خطا در دریافت جدول برترین‌ها:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   const getRankBadge = (index: number) => {
     switch (index) {
@@ -61,9 +60,13 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
         );
       case 1:
         return (
-          <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold ${
-            isDarkMode ? "bg-slate-700/50 text-slate-300 border-slate-600" : "bg-slate-200 text-slate-600 border-slate-300"
-          }`}>
+          <div
+            className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold ${
+              isDarkMode
+                ? "bg-slate-700/50 text-slate-300 border-slate-600"
+                : "bg-slate-200 text-slate-600 border-slate-300"
+            }`}
+          >
             <Medal className="w-4 h-4" />
           </div>
         );
@@ -75,9 +78,13 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
         );
       default:
         return (
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${
-            isDarkMode ? "bg-slate-800 text-slate-400 border-slate-700" : "bg-slate-100 text-slate-500 border-slate-200"
-          }`}>
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border ${
+              isDarkMode
+                ? "bg-slate-800 text-slate-400 border-slate-700"
+                : "bg-slate-100 text-slate-500 border-slate-200"
+            }`}
+          >
             {index + 1}
           </div>
         );
@@ -100,16 +107,24 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
           </div>
           <div>
             <h1 className="text-lg font-black">نفرات برتر مطالعه</h1>
-            <p className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-              رتبه‌بندی بر اساس مجموع ساعت مطالعه و تعداد تست
+            <p
+              className={`text-xs mt-1 ${
+                isDarkMode ? "text-slate-400" : "text-slate-500"
+              }`}
+            >
+              رتبه‌بندی بر اساس مجموع ساعت مطالعه و تعداد تست در بازه زمانی انتخابی
             </p>
           </div>
         </div>
 
         {/* دکمه‌های فیلتر زمانی */}
-        <div className={`flex p-1 rounded-xl border self-stretch sm:self-auto justify-center ${
-          isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-100 border-slate-200"
-        }`}>
+        <div
+          className={`flex p-1 rounded-xl border self-stretch sm:self-auto justify-center ${
+            isDarkMode
+              ? "bg-slate-950 border-slate-800"
+              : "bg-slate-100 border-slate-200"
+          }`}
+        >
           {(["day", "week", "month"] as PeriodType[]).map((p) => {
             const labels = { day: "امروز", week: "این هفته", month: "این ماه" };
             return (
@@ -132,20 +147,32 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
       </div>
 
       {/* جدول لیست نفرات برتر */}
-      <div className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
-        isDarkMode ? "bg-slate-900/60 border-slate-800" : "bg-white border-slate-200/80 shadow-sm"
-      }`}>
+      <div
+        className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
+          isDarkMode
+            ? "bg-slate-900/60 border-slate-800"
+            : "bg-white border-slate-200/80 shadow-sm"
+        }`}
+      >
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-slate-400 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
             <span className="text-xs">در حال دریافت برترین‌ها...</span>
           </div>
         ) : students.length === 0 ? (
-          <div className={`p-12 text-center text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          <div
+            className={`p-12 text-center text-sm ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
             در این بازه زمانی هنوز گزارش مطالعه‌ای ثبت نشده است.
           </div>
         ) : (
-          <div className={`divide-y ${isDarkMode ? "divide-slate-800/80" : "divide-slate-100"}`}>
+          <div
+            className={`divide-y ${
+              isDarkMode ? "divide-slate-800/80" : "divide-slate-100"
+            }`}
+          >
             {students.map((student, index) => (
               <div
                 key={student.id}
@@ -157,35 +184,54 @@ export default function Leaderboard({ isDarkMode = true }: LeaderboardProps) {
                 <div className="flex items-center gap-3.5">
                   {getRankBadge(index)}
                   <div>
-                    <h3 className={`text-sm font-bold flex items-center gap-2 ${
-                      isDarkMode ? "text-slate-100" : "text-slate-800"
-                    }`}>
-                      {student.full_name}
-                      
+                    <h3
+                      className={`text-sm font-bold flex items-center gap-2 ${
+                        isDarkMode ? "text-slate-100" : "text-slate-800"
+                      }`}
+                    >
+                      {student.full_name || student.username}
                     </h3>
-                    <span className={`text-xs ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-                      {student.username}@
+                    <span
+                      className={`text-xs ${
+                        isDarkMode ? "text-slate-500" : "text-slate-400"
+                      }`}
+                    >
+                      @{student.username}
                     </span>
                   </div>
                 </div>
 
                 {/* ساعت مطالعه و تست */}
                 <div className="flex items-center gap-3 sm:gap-4">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-                    isDarkMode ? "bg-slate-800/60 border-slate-700/50 text-slate-100" : "bg-slate-100 border-slate-200 text-slate-800"
-                  }`}>
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
+                      isDarkMode
+                        ? "bg-slate-800/60 border-slate-700/50 text-slate-100"
+                        : "bg-slate-100 border-slate-200 text-slate-800"
+                    }`}
+                  >
                     <Clock className="w-3.5 h-3.5 text-indigo-500" />
                     <span className="text-xs font-black">
-                      {student.total_hours} <span className="text-[10px] font-normal text-slate-400">ساعت</span>
+                      {student.total_hours}{" "}
+                      <span className="text-[10px] font-normal text-slate-400">
+                        ساعت
+                      </span>
                     </span>
                   </div>
 
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-                    isDarkMode ? "bg-slate-800/60 border-slate-700/50 text-slate-100" : "bg-slate-100 border-slate-200 text-slate-800"
-                  }`}>
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
+                      isDarkMode
+                        ? "bg-slate-800/60 border-slate-700/50 text-slate-100"
+                        : "bg-slate-100 border-slate-200 text-slate-800"
+                    }`}
+                  >
                     <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
                     <span className="text-xs font-black">
-                      {student.total_tests} <span className="text-[10px] font-normal text-slate-400">تست</span>
+                      {student.total_tests}{" "}
+                      <span className="text-[10px] font-normal text-slate-400">
+                        تست
+                      </span>
                     </span>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -11,8 +11,15 @@ import {
   X,
   Calendar as CalendarIcon,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import ExamCountdown from "./ExamCountdown";
+import {
+  API_BASE_URL,
+  getAuthHeaders,
+  formatDateToKey,
+  formatPersianDate,
+} from "../utils/api";
 
 interface PlanningProps {
   isDarkMode: boolean;
@@ -25,11 +32,8 @@ interface Task {
   date?: string;
 }
 
-// آدرس پایه API بک‌اند جنگو را اینجا تنظیم کنید
-const API_BASE_URL = "http://localhost:8000/api/tasks";
-
 export default function Planning({ isDarkMode }: PlanningProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,53 +42,29 @@ export default function Planning({ isDarkMode }: PlanningProps) {
   const [editingText, setEditingText] = useState("");
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
 
-  // تبدیل تاریخ به کلید (YYYY-MM-DD)
-  function getFormattedDate(date: Date) {
-    return date.toISOString().split("T")[0];
-  }
-
-  // دریافت تاریخ شمسی
-  function getPersianDateDetails(date: Date) {
-    const weekday = new Intl.DateTimeFormat("fa-IR", { weekday: "long" }).format(date);
-    const day = new Intl.DateTimeFormat("fa-IR", { day: "numeric" }).format(date);
-    const month = new Intl.DateTimeFormat("fa-IR", { month: "long" }).format(date);
-    const year = new Intl.DateTimeFormat("fa-IR", { year: "numeric" }).format(date);
-
-    return `${weekday} ، ${day} ${month} ، ${year}`;
-  }
-
-  const currentDateKey = getFormattedDate(currentDate);
-
-  // دریافت هدرها همراه با توکن کاربر
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token"); // یا اسم توکنی که موقع لاگین ذخیره می‌کنی
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  };
+  const currentDateKey = formatDateToKey(currentDate);
 
   // ۱. دریافت کارهای روز جاری از بک‌اند
-  const fetchTasks = async (dateStr: string) => {
+  const fetchTasks = useCallback(async (dateStr: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/?date=${dateStr}`, {
+      const response = await fetch(`${API_BASE_URL}/api/tasks/?date=${dateStr}`, {
         headers: getAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
-        setTasks(data);
+        setTasks(Array.isArray(data) ? data : data.results || []);
       }
     } catch (error) {
       console.error("خطا در دریافت لیست کارها:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchTasks(currentDateKey);
-  }, [currentDateKey]);
+  }, [currentDateKey, fetchTasks]);
 
   // ۲. افزودن کار جدید به دیتابیس
   const handleAddTask = async (e: React.FormEvent) => {
@@ -92,7 +72,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
     if (!newTaskText.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/tasks/`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -114,20 +94,18 @@ export default function Planning({ isDarkMode }: PlanningProps) {
 
   // ۳. تغییر وضعیت انجام کار (تیک زدن)
   const toggleTask = async (taskId: string | number, currentStatus: boolean) => {
-    // بروزرسانی فوری UI برای سرعت بالا
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, completed: !currentStatus } : t))
     );
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${taskId}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ completed: !currentStatus }),
       });
 
       if (!response.ok) {
-        // در صورت بروز خطا بازگرداندن به حالت قبل
         fetchTasks(currentDateKey);
       }
     } catch (error) {
@@ -141,7 +119,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${taskId}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -160,7 +138,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
     if (!editingText.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${taskId}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ text: editingText.trim() }),
@@ -184,7 +162,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
       prev.setDate(prev.getDate() - 1);
       setCurrentDate(prev);
       setSlideDirection(null);
-    }, 200);
+    }, 150);
   };
 
   const handleNextDay = () => {
@@ -194,7 +172,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
       next.setDate(next.getDate() + 1);
       setCurrentDate(next);
       setSlideDirection(null);
-    }, 200);
+    }, 150);
   };
 
   const startEditing = (task: Task) => {
@@ -206,9 +184,10 @@ export default function Planning({ isDarkMode }: PlanningProps) {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 dir-rtl" dir="rtl">
-      {/* هدر دفترچه و کنترل روزها */}
+      {/* هدر دفترچه و شمارش معکوس کنکور */}
       <ExamCountdown isDarkMode={isDarkMode} currentDate={currentDate} />
 
+      {/* کنترل تاریخ روزها */}
       <div
         className={`p-4 rounded-2xl border flex items-center justify-between shadow-sm transition-colors ${
           isDarkMode
@@ -218,20 +197,20 @@ export default function Planning({ isDarkMode }: PlanningProps) {
       >
         <button
           onClick={handlePrevDay}
-          className="p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition flex items-center gap-1 text-xs font-bold"
+          className="p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition flex items-center gap-1 text-xs font-bold cursor-pointer"
         >
           <ChevronRight className="w-5 h-5" />
           <span className="hidden sm:inline">روز قبلی</span>
         </button>
 
-        <div className="flex items-center gap-2 text-sm sm:text-base font-bold" dir="rtl">
+        <div className="flex items-center gap-2 text-sm sm:text-base font-bold">
           <CalendarIcon className="w-5 h-5 text-indigo-500 shrink-0" />
-          <span>{getPersianDateDetails(currentDate)}</span>
+          <span>{formatPersianDate(currentDate)}</span>
         </div>
 
         <button
           onClick={handleNextDay}
-          className="p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition flex items-center gap-1 text-xs font-bold"
+          className="p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition flex items-center gap-1 text-xs font-bold cursor-pointer"
         >
           <span className="hidden sm:inline">روز بعدی</span>
           <ChevronLeft className="w-5 h-5" />
@@ -249,7 +228,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
         } ${
           isDarkMode
             ? "bg-slate-900 border-slate-800 text-slate-100"
-            : "bg-white border-slate-200 text-slate-800 shadow-amber-900/5"
+            : "bg-white border-slate-200 text-slate-800 shadow-slate-200/50"
         }`}
       >
         {/* عنوان و آمار */}
@@ -269,16 +248,16 @@ export default function Planning({ isDarkMode }: PlanningProps) {
             type="text"
             value={newTaskText}
             onChange={(e) => setNewTaskText(e.target.value)}
-            placeholder="کار جدیدی برای امروز بنویس..."
-            className={`flex-1 p-3 rounded-xl border text-sm outline-none transition text-right placeholder:text-right ${
+            className={`flex-1 p-3 rounded-xl border text-sm outline-none transition text-right ${
               isDarkMode
-                ? "bg-slate-800 border-slate-700 focus:border-indigo-400"
-                : "bg-white border-slate-200 focus:border-indigo-500 shadow-sm"
+                ? "bg-slate-800 border-slate-700 focus:border-indigo-400 text-white"
+                : "bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-800 shadow-sm"
             }`}
           />
           <button
+
             type="submit"
-            className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition flex items-center gap-1 text-sm font-bold"
+            className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition flex items-center gap-1 text-sm font-bold cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             <span className="hidden sm:inline">افزودن</span>
@@ -286,12 +265,15 @@ export default function Planning({ isDarkMode }: PlanningProps) {
         </form>
 
         {/* لیست کارهای دریافتی از دیتابیس */}
-        <div className="relative z-10 space-y-3 min-h-[250px]">
+        <div className="relative z-10 space-y-3 min-h-[200px]">
           {isLoading ? (
-            <div className="text-center py-12 text-slate-400 text-sm">در حال دریافت برنامه...</div>
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 text-xs">
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+              <span>در حال بارگذاری کارها...</span>
+            </div>
           ) : tasks.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">
-              هیچ کاری برای این روز ثبت نشده است. اولین کار را اضافه کن!
+              هیچ کاری برای این روز ثبت نشده است. اولین کار را اضافه کنید!
             </div>
           ) : (
             tasks.map((task) => (
@@ -308,7 +290,7 @@ export default function Planning({ isDarkMode }: PlanningProps) {
                 <div className="flex items-center gap-3 flex-1 min-w-0 ml-2">
                   <button
                     onClick={() => toggleTask(task.id, task.completed)}
-                    className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-colors ${
+                    className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                       task.completed
                         ? "bg-emerald-500 border-emerald-500 text-white"
                         : "border-slate-300 dark:border-slate-600 hover:border-indigo-500"
@@ -325,20 +307,22 @@ export default function Planning({ isDarkMode }: PlanningProps) {
                         onChange={(e) => setEditingText(e.target.value)}
                         className={`w-full p-1.5 rounded-lg border text-sm outline-none ${
                           isDarkMode
-                            ? "bg-slate-700 border-indigo-400"
-                            : "bg-slate-50 border-indigo-500"
+                            ? "bg-slate-700 border-indigo-400 text-white"
+                            : "bg-slate-50 border-indigo-500 text-slate-900"
                         }`}
                         autoFocus
                       />
                       <button
                         onClick={() => saveEditing(task.id)}
-                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"
+                        title="ذخیره"
                       >
                         <Check className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setEditingTaskId(null)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                        title="انصراف"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -361,13 +345,15 @@ export default function Planning({ isDarkMode }: PlanningProps) {
                   <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => startEditing(task)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer"
+                      title="ویرایش"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => deleteTask(task.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg transition"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer"
+                      title="حذف"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

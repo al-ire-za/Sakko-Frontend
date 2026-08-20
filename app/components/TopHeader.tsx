@@ -24,20 +24,21 @@ export default function TopHeader({
   activeTab = "dashboard",
   setActiveTab
 }: TopHeaderProps) {
-  // لیست آیتم‌های نوبار (به راحتی می‌توانی بعداً مواردی مثل 'reports' یا 'leaderboard' را اضافه کنی)
   const navItems = [
     { id: "dashboard", label: "صفحه اصلی", icon: LayoutDashboard },
-    
+    { id: "profile", label: "پروفایل من", icon: User },
   ];
+
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b backdrop-blur-md px-0 lg:px-8 py-3.5 transition-colors ${
+      className={`sticky top-0 z-50 border-b backdrop-blur-md px-0 lg:px-8 py-3.5 transition-colors shadow-sm ${
         isDarkMode
-          ? "bg-slate-900/80 border-slate-800 text-slate-100"
-          : "bg-white/80 border-slate-200 text-slate-800"
+          ? "bg-slate-900/95 border-slate-800 text-slate-100"
+          : "bg-white/95 border-slate-200 text-slate-800"
       }`}
     >
+
       <div className="max-w-7xl mx-auto px-4 lg:px-8 flex items-center justify-between gap-4" dir="rtl">
         {/* بخش راست: لوگو + نوبار */}
         <div className="flex items-center gap-4 justify-around">
@@ -55,7 +56,13 @@ export default function TopHeader({
           )}
 
           {/* لوگو */}
-          <img src="S.png" alt="Logo" className="w-10 h-auto cursor-pointer" />
+          <img
+            src="/S.png"
+            alt="Logo"
+            onClick={() => setActiveTab && setActiveTab("dashboard")}
+            className="w-9 h-auto cursor-pointer hover:opacity-90 transition-opacity"
+          />
+
 
           {/* نوبار جدید متصل به لوگو */}
           <nav className="flex items-center gap-1 sm:gap-2">
